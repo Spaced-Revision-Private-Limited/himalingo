@@ -1,0 +1,113 @@
+/* --- Modified Layout Logic --- */
+  body{
+font-family: 'Cinzel', sans-serif;
+
+}
+
+/* h1,h2,h3{
+font-family: 'Cinzel', serif;
+} */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Remove fixed centering from here */
+  min-height: 100vh;
+  background: transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  background-color: #ffffff;
+
+}
+
+/* 1. Use this for the Landing Page (Center Everything) */
+.landing-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;    /* Horizontal Center */
+  justify-content: center; /* Vertical Center */
+  width: 100%;
+}
+
+/* 2. Use this for the Chat View (Top Aligned) */
+.chat-viewport {
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* This centers the column, not the text */
+  padding-top: 40px;
+}
+
+.chat-content {
+  width: 100%;
+  max-width: 800px; /* Standard ChatGPT width */
+  padding: 0 20px 150px 20px; /* Extra bottom padding for the input area */
+}
+
+/* --- ChatGPT Style Messages --- */
+
+.user-query-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end; /* Pushes user bubble to the right */
+  margin-bottom: 24px;
+}
+
+.ai-response-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; /* Keeps AI text on the left */
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.user-query-text {
+  background: #2f2f2f; /* Darker modern bubble */
+  color: white;
+  padding: 12px 20px;
+  border-radius: 20px;
+  max-width: 70%;
+  font-size: 16px;
+  body{
+font-family: 'Inter', sans-serif;
+}
+  line-height: 1.5;
+}
+
+.ai-response-content {
+  color: #1a1a1a;
+  padding: 4px 0;
+  max-width: 85%;
+  font-size: 16px;
+  font-family: 'Cinzel', serif;
+  line-height: 1.6;
+}
+
+/* --- Input Area Fix --- */
+.input-area {
+  position: fixed; /* Keep it at the bottom */
+  bottom: 0;
+  width: 100%;
+  background: linear-gradient(transparent, #f5f7fa 30%); /* Fade effect */
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+}
+
+/* Responsive Fix for Sidebar Space */
+/* @media (min-width: 769px) {
+  .input-area {
+    padding-left: 300px;
+    margin: auto; /* Match sidebar width */
+
+ @media (max-width: 480px) {
+          .suggestions-grid {
+            flex-direction: column;
+            align-items: center;
+          }
+          .suggestion-card { width: 80%; }
+    }
