@@ -4,21 +4,30 @@ function LoginPopup({ onLoginSuccess, onClose }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState(""); 
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Use 3002 to match your backend
+    // 1. Password validation for Signup
+    if (!isLogin && password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    // 2. Access environment variable (Standard React uses process.env)
+    // Make sure your .env has: REACT_APP_API_URL=http://localhost:3002
+    const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3002";
     const endpoint = isLogin ? "/api/login" : "/api/signup";
-    const url = `http://localhost:3002${endpoint}`;
+    const fullUrl = `${baseUrl}${endpoint}`;
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(fullUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }), // Sending as JSON object
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -32,7 +41,7 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       }
     } catch (err) {
       console.error("Auth error:", err);
-      setError("Server is offline. Please ensure backend is running on port 3002.");
+      setError("Server is offline. Please ensure backend is running.");
     }
   };
 
@@ -56,13 +65,18 @@ function LoginPopup({ onLoginSuccess, onClose }) {
             onChange={(e) => setPassword(e.target.value)} 
             required 
           />
-             <input 
-            type="Confirm password" 
-            placeholder=" Confirm Password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-          />
+          
+          {/* Only show Confirm Password during Sign Up */}
+          {!isLogin && (
+            <input 
+              type="password" 
+              placeholder="Confirm Password" 
+              value={confirmPassword} 
+              onChange={(e) => setConfirmPassword(e.target.value)} 
+              required 
+            />
+          )}
+
           {error && <p className="error-msg">{error}</p>}
           <button type="submit" className="submit-btn">
             {isLogin ? "Login" : "Sign Up"}
@@ -70,7 +84,10 @@ function LoginPopup({ onLoginSuccess, onClose }) {
         </form>
         <p className="toggle-text">
           {isLogin ? "Don't have an account?" : "Already have an account?"}
-          <span onClick={() => setIsLogin(!isLogin)}>
+          <span onClick={() => {
+            setIsLogin(!isLogin);
+            setError("");
+          }}>
             {isLogin ? " Sign Up" : " Login"}
           </span>
         </p>
