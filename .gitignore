@@ -149,5 +149,12 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
-.env
-env local
+
+env\ local
+.env.local
+.env.*.local
+
+
+__pycache__/
+venv/
+.venv/
