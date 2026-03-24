@@ -10,6 +10,11 @@ import LoginPopup from "./components/LoginPopup";
 import { FaCopy, FaVolumeUp, FaCheck } from "react-icons/fa";
 
 export default function Home() {
+  // Get API URL from environment variable
+  const apiUrl = process.env.REACT_APP_API_URL;
+  if (!apiUrl) {
+    console.error("ERROR: REACT_APP_API_URL environment variable is not set");
+  }
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -46,23 +51,23 @@ export default function Home() {
 
   const fetchHistory = async (emailToFetch) => {
     const email = emailToFetch || userEmail;
-    if (!email) return;
+    if (!email || !apiUrl) return;
     try {
-      const response = await fetch(`http://localhost:3002/history?email=${email}&t=${Date.now()}`);
+      const response = await fetch(`${apiUrl}/history?email=${email}&t=${Date.now()}`);
       const data = await response.json();
       if (data.success) setHistory(data.history);
     } catch (err) { console.error("History fetch failed", err); }
   };
 
   const saveChatToHistory = async (currentMessages, chatIdToUse) => {
-    if (!loggedIn || !userEmail || currentMessages.length === 0) return;
+    if (!loggedIn || !userEmail || currentMessages.length === 0 || !apiUrl) return;
     
     try {
       const id = chatIdToUse || currentChatId;
       const firstUserMsg = currentMessages.find(m => m.role === "user")?.content || "New Chat";
       const title = firstUserMsg.length > 35 ? firstUserMsg.substring(0, 35) + "..." : firstUserMsg;
       
-      await fetch("http://localhost:3002/history/save-session", {
+      await fetch(`${apiUrl}/history/save-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -78,9 +83,9 @@ export default function Home() {
   };
 
   const handleDeleteItem = async (e, chatId) => {
-    if (!loggedIn || !userEmail) return;
+    if (!loggedIn || !userEmail || !apiUrl) return;
     try {
-      const response = await fetch(`http://localhost:3002/history/session/${chatId}?email=${userEmail}`, {
+      const response = await fetch(`${apiUrl}/history/session/${chatId}?email=${userEmail}`, {
         method: "DELETE"
       });
       const data = await response.json();
@@ -92,9 +97,9 @@ export default function Home() {
   };
 
   const handleTogglePin = async (e, chatId, currentPinStatus) => {
-    if (!loggedIn || !userEmail) return;
+    if (!loggedIn || !userEmail || !apiUrl) return;
     try {
-      const response = await fetch(`http://localhost:3002/history/session/${chatId}/pin?email=${userEmail}`, {
+      const response = await fetch(`${apiUrl}/history/session/${chatId}/pin?email=${userEmail}`, {
         method: "PATCH"
       });
       const data = await response.json();
@@ -105,10 +110,10 @@ export default function Home() {
   };
 
   const handleClearHistory = async () => {
-    if (!loggedIn || !userEmail) return;
+    if (!loggedIn || !userEmail || !apiUrl) return;
     if (!window.confirm("Clear all history?")) return;
     try {
-      await fetch(`http://localhost:3002/history?email=${userEmail}`, { method: "DELETE" });
+      await fetch(`${apiUrl}/history?email=${userEmail}`, { method: "DELETE" });
       setHistory([]);
       // MUST CLEAR STATE: Prevents old messages from ghosting into new chats
       setMessages([]);
@@ -294,7 +299,7 @@ export default function Home() {
         mode: activeMode
       });
       
-      const response = await fetch(`http://localhost:3002${endpoint}`, { 
+      const response = await fetch(`${apiUrl}${endpoint}`, { 
         method: "POST", 
         body: formData 
       });

@@ -18,8 +18,12 @@ function LoginPopup({ onLoginSuccess, onClose }) {
     }
 
     // 2. Access environment variable (Standard React uses process.env)
-    // Make sure your .env has: REACT_APP_API_URL=http://localhost:3002
-    const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3002";
+    // Make sure your .env has: REACT_APP_API_URL=your_production_api_url
+    const baseUrl = process.env.REACT_APP_API_URL;
+    if (!baseUrl) {
+      setError("API configuration error: REACT_APP_API_URL is not set");
+      return;
+    }
     const endpoint = isLogin ? "/api/login" : "/api/signup";
     const fullUrl = `${baseUrl}${endpoint}`;
 
