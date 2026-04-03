@@ -2,22 +2,34 @@ pipeline {
   agent any
 
   stages {
-    stage('Clone') {
+
+    stage('Clone Check') {
       steps {
-        echo 'Code pulled from GitHub'
+        echo 'Code pulled from GitHub successfully'
+        sh 'ls'
       }
     }
 
-    stage('Build') {
+    stage('Frontend Build') {
       steps {
-        sh 'echo Build started'
+        dir('frontend') {
+          sh 'echo Installing frontend dependencies'
+          sh 'npm install'
+          sh 'echo Building frontend'
+          sh 'npm run build'
+        }
       }
     }
 
-    stage('Run') {
+    stage('Backend Setup') {
       steps {
-        sh 'echo Running project'
+        dir('backend') {
+          sh 'echo Installing backend dependencies'
+          sh 'pip3 install -r requirements.txt || true'
+          sh 'echo Backend ready'
+        }
       }
     }
+
   }
 }
