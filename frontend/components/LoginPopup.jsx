@@ -16,20 +16,35 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       return;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!baseUrl) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
       setError("API configuration error: NEXT_PUBLIC_API_URL is not set");
       return;
     }
-  const endpoint = isLogin ? "/login" : "/signup";
-    const fullUrl = `${baseUrl}${endpoint}`;
+    const endpoint = isLogin ? "/api/login" : "/api/signup";
+    const requestUrl = `${apiUrl}${endpoint}`;
 
     try {
-      const response = await fetch(fullUrl, {
+      const response = await fetch(requestUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Auth failed response:", response.status, text);
+        setError(text || `Request failed with status ${response.status}`);
+        return;
+      }
+
+      if (!contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Expected JSON but got:", text);
+        setError("Unexpected server response format");
+        return;
+      }
 
       const data = await response.json();
 
