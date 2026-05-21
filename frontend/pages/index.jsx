@@ -283,7 +283,7 @@ export default function Home() {
             onLoginSuccess={() => {
               dispatch(loginUser({ email: localStorage.getItem("userEmail") }));
               setLoginOpen(false);
-              fetchHistory();
+              fetchHistory(localStorage.getItem("userEmail"));
             }}
             onClose={() => setLoginOpen(false)}
           />

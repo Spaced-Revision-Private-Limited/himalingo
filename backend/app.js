@@ -15,7 +15,7 @@ const app = express();
 
 // ── CORS fix — allow frontend on port 3000 ────────────────────────────────
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3001"],
+  origin: ["http://localhost:3000", "http://localhost:3001", "https://www.himalingo.com", "https://himalingo.com"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 }));

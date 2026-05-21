@@ -65,15 +65,12 @@ font-family: 'Cinzel', serif;
 }
 
 .user-query-text {
-  background: #2f2f2f; /* Darker modern bubble */
+  background: #2f2f2f;
   color: white;
   padding: 12px 20px;
   border-radius: 20px;
   max-width: 70%;
   font-size: 16px;
-  body{
-font-family: 'Inter', sans-serif;
-}
   line-height: 1.5;
 }
 
@@ -98,16 +95,14 @@ font-family: 'Inter', sans-serif;
   z-index: 100;
 }
 
-/* Responsive Fix for Sidebar Space */
-/* @media (min-width: 769px) {
-  .input-area {
-    padding-left: 300px;
-    margin: auto; /* Match sidebar width */
-
- @media (max-width: 480px) {
-          .suggestions-grid {
-            flex-direction: column;
-            align-items: center;
-          }
-          .suggestion-card { width: 80%; }
-    }
+@media (max-width: 768px) {
+  .sidebar.open { width: 220px; }
+  .sidebar.closed { width: 0; padding: 0; }
+  .main { margin-left: 0; }
+  .chat-content { padding: 0 12px 140px 12px; }
+  .landing-input-wrapper { padding: 0 12px; }
+  .input-area { padding: 12px; }
+  .logo { font-size: 2.6rem; }
+  .user-query-text { max-width: 85%; font-size: 15px; }
+  .ai-response-content { max-width: 100%; font-size: 15px; }
+}
