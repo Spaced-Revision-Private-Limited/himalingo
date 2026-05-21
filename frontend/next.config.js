@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable any default Next.js development features that might show logos
   reactStrictMode: true,
-  // Fix for HMR issues in newer Next.js versions
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -12,7 +11,14 @@ const nextConfig = {
     }
     return config;
   },
-  // Add empty turbopack config to silence the warning (Next.js 16+)
+
+  rewrites: async () => [
+    {
+      source: '/api/:path*',
+      destination: 'https://api.himalingo.com/:path*',
+    }
+  ],
+
   turbopack: {},
 };
 
