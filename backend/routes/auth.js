@@ -12,7 +12,7 @@ router.post("/signup", async (req, res) => {
     }
 
     await new User({ email, password }).save();
-    res.json({ success: true, token: "login-token" });
+    res.status(201).json({ success: true, token: "login-token" });
 
   } catch {
     res.status(500).json({ success: false });
@@ -35,7 +35,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    res.json({ success: true, token: "login-token" });
+    res.status(200).json({ success: true, token: "login-token" });
 
   } catch (err) {
     console.error("Login Error:", err);
