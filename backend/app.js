@@ -24,4 +24,9 @@ app.use("/history", historyRoutes);
 app.use("/", translateRoutes);
 app.use("/", chatRoutes);
 
+app.use((req, res, next, error) => {
+  console.error("Unhandled Error:", error);
+  res.status(500).json({ success: false, message: "Internal Server Error" });
+});
+
 export default app;
