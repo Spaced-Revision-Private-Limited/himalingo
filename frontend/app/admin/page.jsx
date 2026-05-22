@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboard() {
     const [data, setData] = useState([]);
@@ -9,7 +10,7 @@ export default function AdminDashboard() {
 
     const fetchData = async () => {
         try {
-            const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-data`);
+            const res = await axios.get(`${apiUrl}/admin/all-data`);
             if (res.data.success) setData(res.data.translations);
         } catch (err) {
             console.error("Fetch failed", err);
@@ -20,7 +21,7 @@ export default function AdminDashboard() {
 
     const handleSync = async () => {
         try {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/admin/sync-json`);
+            const res = await axios.post(`${apiUrl}/admin/sync-json`);
             alert(res.data.message);
             fetchData(); // Refresh table
         } catch (err) {
@@ -32,7 +33,7 @@ export default function AdminDashboard() {
 
     const toggleStatus = async (item) => {
         try {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/admin/toggle-status/${item._id}`);
+            const res = await axios.post(`${apiUrl}/admin/toggle-status/${item._id}`);
             if (res.data.success) {
                 setData(prev => prev.map(t => 
                     t._id === item._id ? { ...t, isChecked: res.data.isChecked } : t
