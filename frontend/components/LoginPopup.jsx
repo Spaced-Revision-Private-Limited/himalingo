@@ -21,6 +21,7 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       setError("API configuration error: NEXT_PUBLIC_API_URL is not set");
       return;
     }
+
     const endpoint = isLogin ? "/api/login" : "/api/signup";
     const requestUrl = `${apiUrl}${endpoint}`;
 
