@@ -7,16 +7,20 @@ const validate = (schema) => {
         const {error, value} = schema.validate(req.body, {abortEarly: true});
 
         if(error) {
-            const errors = error.details.map(datail => detail.message)
-            return res.status(400).json({
+
+            //const errors = error.details.map((detail) => [detail.message, detail.path])
+            //console.log(errors);
+
+             return res.status(400).json({
                 success: false,
                 message: "invalid request",
-                error: errors
+                error: error.details
             })
         }
 
         req.body = value;
         next();
+
     }
 }
 

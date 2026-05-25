@@ -18,15 +18,31 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use("/admin", adminRoutes);
-app.use("/api", authRoutes);
-app.use("/history", historyRoutes);
-app.use("/", translateRoutes);
-app.use("/", chatRoutes);
+app.use("/api/admin", adminRoutes);
 
-app.use((req, res, next, error) => {
-  console.error("Unhandled Error:", error);
-  res.status(500).json({ success: false, message: "Internal Server Error" });
+app.use("/api/auth", authRoutes);
+app.use("/api", authRoutes);
+app.use("/api/history", historyRoutes);
+app.use("/api/translate", translateRoutes);
+app.use("/api/chat", chatRoutes);
+
+
+app.route("/health").get((req, res) => {
+  return res.status(200)
+            .json({
+              success: true,
+              health: "GOOD",
+              message: "System is running GOOD"
+            })
+})
+
+app.use((err, req, res, next) => {
+    console.error(err.stack); // Good for debugging
+    
+    res.status(500).json({ 
+        success: false, 
+        message: err.message || "Internal Server Error" 
+    });
 });
 
 export default app;

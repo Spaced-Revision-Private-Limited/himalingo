@@ -23,10 +23,24 @@ vi.mock('@pinecone-database/pinecone', () => ({
 
 import app from "../app.js";
 
-describe("Simple Auth Test", () => {
-  it("should check if signup route exists", async () => {
-    const res = await request(app).post("/api/signup").send({});
-    // We just want to see it didn't crash (should be 400 or 200)
-    expect(res.status).toBeDefined();
+describe("Auth routes", () => {
+  it("should expose auth routes under both path prefixes", async () => {
+    const loginPayload = {
+      email: "user@example.com",
+      password: "password123",
+    };
+
+    const legacyResponse = await request(app)
+      .post("/api/login")
+      .send(loginPayload);
+
+    const authResponse = await request(app)
+      .post("/api/auth/login")
+      .send(loginPayload);
+
+    expect(legacyResponse.status).toBe(401);
+    expect(authResponse.status).toBe(401);
+    expect(legacyResponse.body.success).toBe(false);
+    expect(authResponse.body.success).toBe(false);
   });
 });

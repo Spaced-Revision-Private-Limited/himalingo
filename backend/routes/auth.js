@@ -1,32 +1,42 @@
 import express from "express";
 import User from "../models/User.js";
-import { loginSchema } from "../validators/auth.validator.js";
-import {validate} from "../middlewares/validator.middleware.js";
+import { loginSchema, signUpSchema } from "../validators/auth.validator.js";
+import { validate } from "../middlewares/validator.middleware.js";
 
 const router = express.Router();
 
-router.post("/signup", async (req, res) => {
+// 1. SIGNUP ROUTE
+router.post("/signup", validate(signUpSchema), async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // If your schema includes 'name', extract it here to save it!
+    const { name, email, password } = req.body; 
+    
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (await User.findOne({ email })) {
+    // Check if user exists using the normalized email
+    if (await User.findOne({ email: normalizedEmail })) {
       return res.status(400).json({ success: false, message: "User exists" });
     }
 
-    await new User({ email, password }).save();
+    // Save user with the normalized email
+    await new User({ name, email: normalizedEmail, password }).save();
     res.status(201).json({ success: true, token: "login-token" });
 
-  } catch {
-    res.status(500).json({ success: false });
+  } catch (err) {
+    console.error("Signup Error:", err);
+    res.status(500).json({ success: false, message: "Server error during registration" });
   }
 });
 
-router.post("/login", validate(loginSchema),async (req, res) => {
+// 2. LOGIN ROUTE
+router.post("/login", validate(loginSchema), async (req, res) => {
   try {
+    const { email, password } = req.body;
 
-    const {email, password} = req.body;
-
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Normalize email to match what was saved during signup
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
