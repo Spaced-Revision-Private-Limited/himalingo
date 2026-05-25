@@ -7,7 +7,7 @@ const router = express.Router();
 // Save or update a chat session
 router.post("/save-session", async (req, res) => {
   try {
-    const { email, chatId, firstQuery, finalResult, mode } = req.body;
+    const { chatId, firstQuery, finalResult, mode } = req.body;
     await History.findOneAndUpdate(
       { chatId },
       {
