@@ -1,26 +1,22 @@
 {
   "formal": [
     {
-      "id": 1,
       "english": "Would you like to have Sugar or Salt Tea?",
       "bhutia": "Lhengay Suyo-ja di Ngam Jyepo Nangshey bo cha ki Jeshey bo la?"
     },
     {
-      "id": 2,
       "english": "Would you like tea with or without Milk?",
       "bhutia": "Suyo-ja di Jye-om Dyen di Jyepo nangshey ya?"
     },
     {
-      "id": 3,
       "english": "For lunch today, have Rice with Egg, Pumpkin, achar and Curd",
-      "bhutia": null
+      "bhutia": ""
     }
   ],
   "informal": [
     {
-      "id": 1,
       "english": "Would you like to have Sugar or Salt Tea?",
-      "bhutia": null
+      "bhutia": ""
     }
   ]
 }
