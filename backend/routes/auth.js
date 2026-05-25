@@ -1,5 +1,7 @@
 import express from "express";
 import User from "../models/User.js";
+import { loginSchema } from "../validators/auth.validator.js";
+import {validate} from "../middlewares/validator.middleware.js";
 
 const router = express.Router();
 
@@ -19,9 +21,10 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", validate(loginSchema),async (req, res) => {
   try {
-    const { email, password } = req.body;
+
+    const {email, password} = req.body;
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
