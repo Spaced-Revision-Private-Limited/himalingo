@@ -1,6 +1,7 @@
+import { envConfig } from "../config/env.config.js";
 import { searchPinecone } from "../config/pinecone.js";
 
-const CONFIDENCE_THRESHOLD = Number(process.env.CONFIDENCE_THRESHOLD ?? 0.6);
+const CONFIDENCE_THRESHOLD = Number(envConfig.CONFIDENCE_THRESHOLD);
 const TOP_K = Number(process.env.RAG_TOP_K ?? 5);
 
 function cleanQueryForSearch(input) {
