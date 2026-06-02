@@ -22,7 +22,7 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       return;
     }
 
-    const endpoint = isLogin ? "/api/login" : "/api/signup";
+    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
     const requestUrl = `${apiUrl}${endpoint}`;
 
     try {

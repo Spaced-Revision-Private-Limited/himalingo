@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setTargetLanguage,
@@ -20,9 +20,8 @@ import SearchBox from "../components/SearchBox";
 import Suggestions from "../components/Suggestions";
 import LoginPopup from "../components/LoginPopup";
 import { FaCopy, FaVolumeUp, FaCheck } from "react-icons/fa";
-import { useState } from "react";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function Home() {
   const dispatch = useDispatch();
@@ -43,13 +42,14 @@ export default function Home() {
 
   const scrollRef = useRef(null);
 
+  // ── 1. Initial Application Setup ─────────────────────────────────────────
   useEffect(() => {
     setMounted(true);
     const token = localStorage.getItem("token");
     const email = localStorage.getItem("userEmail");
     if (token && email) {
       dispatch(loginUser({ email }));
-      fetchHistory(email);
+      fetchHistory(); 
     }
   }, []);
 
@@ -59,61 +59,140 @@ export default function Home() {
     }
   }, [messages]);
 
-  const fetchHistory = async (emailToFetch) => {
-    const email = emailToFetch || userEmail;
-    if (!email || !apiUrl) return;
+  // ── 2. Secure History Database Sync ─────────────────────────────────────
+  const fetchHistory = async () => {
+    if (!apiUrl) return;
     try {
-      const response = await fetch(`${apiUrl}/history?email=${email}&t=${Date.now()}`);
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch(`${apiUrl}/api/history?t=${Date.now()}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
       const contentType = response.headers.get("content-type");
       if (!response.ok || !contentType?.includes("application/json")) return;
+      
       const data = await response.json();
-      if (data.success) setHistory(data.history);
-    } catch (err) { console.error("History fetch failed", err); }
+      if (data.success) {
+        setHistory(data.history || []);
+      }
+    } catch (err) { 
+      console.error("History fetch failed", err); 
+    }
   };
 
-  const saveChatToHistory = async (currentMessages, chatIdToUse) => {
-    if (!loggedIn || !userEmail || currentMessages.length === 0 || !apiUrl) return;
-    try {
-      const id = chatIdToUse || currentChatId;
-      const firstUserMsg = currentMessages.find(m => m.role === "user")?.content || "New Chat";
-      const title = firstUserMsg.length > 35 ? firstUserMsg.substring(0, 35) + "..." : firstUserMsg;
-      await fetch(`${apiUrl}/history/save-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatId: id, email: userEmail, firstQuery: title, finalResult: JSON.stringify(currentMessages), mode }),
-      });
-      fetchHistory(userEmail);
-    } catch (err) { console.error("Save failed", err); }
-  };
-
+  // ── 3. Session Management Triggers ──────────────────────────────────────
   const handleDeleteItem = async (e, chatId) => {
-    if (!loggedIn || !userEmail || !apiUrl) return;
+    if (!loggedIn || !apiUrl) return;
     try {
-      const res = await fetch(`${apiUrl}/history/session/${chatId}?email=${userEmail}`, { method: "DELETE" });
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${apiUrl}/api/history/session/${chatId}`, { 
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       const data = await res.json();
-      if (data.success) { if (currentChatId === chatId) handleNewChat(); fetchHistory(userEmail); }
+      if (data.success) { 
+        if (currentChatId === chatId) handleNewChat(); 
+        fetchHistory(); 
+      }
     } catch (err) { console.error("Delete failed", err); }
   };
 
   const handleTogglePin = async (e, chatId) => {
-    if (!loggedIn || !userEmail || !apiUrl) return;
+    if (!loggedIn || !apiUrl) return;
     try {
-      const res = await fetch(`${apiUrl}/history/session/${chatId}/pin?email=${userEmail}`, { method: "PATCH" });
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${apiUrl}/api/history/session/${chatId}/pin`, { 
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       const data = await res.json();
-      if (data.success) fetchHistory(userEmail);
+      if (data.success) fetchHistory();
     } catch (err) { console.error("Pin failed", err); }
   };
 
   const handleClearHistory = async () => {
-    if (!loggedIn || !userEmail || !apiUrl) return;
+    if (!loggedIn || !apiUrl) return;
     if (!window.confirm("Clear all history?")) return;
     try {
-      await fetch(`${apiUrl}/history?email=${userEmail}`, { method: "DELETE" });
+      const token = localStorage.getItem("token");
+      await fetch(`${apiUrl}/api/history`, { 
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       setHistory([]);
       dispatch(resetChat());
     } catch (err) { console.error("Clear failed", err); }
   };
 
+  // ── 4. Form Submission Flow ─────────────────────────────────────────────
+  const handleSearchSubmit = async (textFromInput, imageFile, selectedLangFromSuggestion) => {
+    if (!textFromInput && !imageFile) return;
+    if (!loggedIn) { setLoginOpen(true); return; }
+
+    const resolvedLang = selectedLangFromSuggestion || targetLanguage || "Bhutia";
+    const isTranslate  = textFromInput?.toLowerCase().includes("translate") || mode === "translate";
+    const resolvedMode = isTranslate ? "translate" : "chat";
+
+    dispatch(setIsChatting(true));
+    const chatId = currentChatId || `chat_${Date.now()}`;
+    if (!currentChatId) dispatch(setCurrentChatId(chatId));
+
+    dispatch(addMessage({ role: "user", content: textFromInput || "" }));
+    dispatch(addMessage({ role: "ai", content: "Thinking...", typing: true }));
+
+    try {
+      const token = localStorage.getItem("token"); 
+
+      const formData = new FormData();
+      formData.append("text", textFromInput || "");
+      formData.append("targetLanguage", resolvedLang);
+      formData.append("mode", resolvedMode);
+      formData.append("chatId", chatId); 
+      formData.append("history", JSON.stringify(messages.filter(m => !m.typing)));
+      if (imageFile) formData.append("image", imageFile);
+
+      const endpoint = resolvedMode === "chat" ? "/api/chat" : "/api/translate"; 
+      const response = await fetch(`${apiUrl}${endpoint}`, { 
+        method: "POST", 
+        body: formData,
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      // 1. Parse JSON first safely inside scope
+      const data = await response.json();
+
+      // 2. Evaluate backend middleware schema outcome
+      if (!response.ok || data.success === false) {
+        const backendError = data.error || "Validation failed on server.";
+        
+        dispatch(updateLastMessage({ 
+          role: "ai", 
+          content: `⚠️ **Validation Error:** ${backendError}`, 
+          typing: false 
+        }));
+        
+        dispatch(setIsChatting(false)); 
+        return; 
+      }
+
+      // 3. Render content block if validation passes
+      const aiResponse = resolvedMode === "chat" ? data.response : data.translated;
+      dispatch(updateLastMessage({ role: "ai", content: aiResponse || "No response.", typing: false }));
+      fetchHistory();
+
+    } catch (err) {
+      console.error("Submission error:", err);
+      dispatch(updateLastMessage({ role: "ai", content: "Server connection failed.", typing: false }));
+    }
+  };
+
+  // ── 5. Accessibility Audio/Text Helpers ─────────────────────────────────
   const speakText = (text) => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -133,49 +212,6 @@ export default function Home() {
   };
 
   const handleNewChat = () => { dispatch(resetChat()); };
-
-  const handleSearchSubmit = async (textFromInput, imageFile, selectedLangFromSuggestion) => {
-    if (!textFromInput && !imageFile) return;
-    if (!loggedIn) { setLoginOpen(true); return; }
-
-    const resolvedLang = selectedLangFromSuggestion || targetLanguage || "Bhutia";
-    const isTranslate  = textFromInput?.toLowerCase().includes("translate") || mode === "translate";
-    const resolvedMode = isTranslate ? "translate" : "chat";
-
-    dispatch(setIsChatting(true));
-    const chatId = currentChatId || `chat_${Date.now()}`;
-    if (!currentChatId) dispatch(setCurrentChatId(chatId));
-
-    dispatch(addMessage({ role: "user", content: textFromInput || "" }));
-    dispatch(addMessage({ role: "ai", content: "Thinking...", typing: true }));
-
-    try {
-      const formData = new FormData();
-      formData.append("text", textFromInput || "");
-      formData.append("targetLanguage", "Bhutia");
-      formData.append("mode", resolvedMode);
-      formData.append("history", JSON.stringify(messages.filter(m => !m.typing)));
-      if (imageFile) formData.append("image", imageFile);
-
-      const endpoint = resolvedMode === "chat" ? "/chat" : "/translate";
-      const response = await fetch(`${apiUrl}${endpoint}`, { method: "POST", body: formData });
-
-      const contentType = response.headers.get("content-type");
-      if (!response.ok || !contentType?.includes("application/json")) {
-        throw new Error("Server returned non-JSON response.");
-      }
-
-      const data = await response.json();
-      const aiResponse = resolvedMode === "chat" ? data.response : data.translated;
-
-      dispatch(updateLastMessage({ role: "ai", content: aiResponse || "No response.", typing: false }));
-      saveChatToHistory([...messages.filter(m => !m.typing), { role: "user", content: textFromInput }, { role: "ai", content: aiResponse }], chatId);
-
-    } catch (err) {
-      console.error("Submission error:", err);
-      dispatch(updateLastMessage({ role: "ai", content: "Server connection failed. Make sure your backend is running on port 5000.", typing: false }));
-    }
-  };
 
   if (!mounted) return null;
 
@@ -208,15 +244,12 @@ export default function Home() {
       <main className="main">
         <div className={isChatting ? "chat-viewport" : "landing-view"} ref={scrollRef}>
 
-          {/* ── LANDING PAGE ── */}
+          {/* ── LANDING PAGE VIEW ── */}
           {!isChatting ? (
             <div className="landing-content">
-
-              {/* Logo + subtitle */}
               <h1 className="logo">Himalingo</h1>
               <p className="subtitle">English to Bhutia translation</p>
 
-              {/* Search bar */}
               <div className="landing-input-wrapper">
                 <SearchBox
                   isLoggedIn={loggedIn}
@@ -226,7 +259,6 @@ export default function Home() {
                   onFocus={() => !loggedIn && setLoginOpen(true)}
                 />
 
-                {/* Chips only — no inline result */}
                 <Suggestions
                   onSelect={handleSearchSubmit}
                   setMode={(m) => dispatch(setMode(m))}
@@ -236,7 +268,7 @@ export default function Home() {
               </div>
             </div>
 
-          /* ── CHAT VIEW ── */
+          /* ── ACTIVE CHAT SCREEN VIEW ── */
           ) : (
             <div className="chat-content">
               {messages.map((msg, index) => (
@@ -262,7 +294,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* Fixed input bar while chatting */}
+        {/* Floating Bottom Input Dock */}
         {isChatting && (
           <div className="input-area-fixed">
             <div className="search-wrapper">
@@ -283,7 +315,7 @@ export default function Home() {
             onLoginSuccess={() => {
               dispatch(loginUser({ email: localStorage.getItem("userEmail") }));
               setLoginOpen(false);
-              fetchHistory(localStorage.getItem("userEmail"));
+              fetchHistory();
             }}
             onClose={() => setLoginOpen(false)}
           />
@@ -291,11 +323,10 @@ export default function Home() {
       </main>
 
       <style jsx>{`
-        /* ── Layout ── */
         .container {
           display: flex;
           height: 100vh;
-          background: #f8f7f4;  /* warm off-white from screenshot */
+          background: #f8f7f4; 
         }
         .main {
           flex: 1;
@@ -307,8 +338,6 @@ export default function Home() {
           overflow: hidden;
           background: #f8f7f4;
         }
-
-        /* ── Landing ── */
         .landing-view {
           flex: 1;
           display: flex;
@@ -341,8 +370,6 @@ export default function Home() {
           max-width: 600px;
           padding: 0 20px;
         }
-
-        /* ── Chat ── */
         .chat-viewport {
           flex: 1;
           overflow-y: auto;
@@ -363,7 +390,6 @@ export default function Home() {
         .u-row   { justify-content: flex-end; }
         .a-row   { justify-content: flex-start; }
 
-        /* User bubble — purple from screenshot */
         .u-bubble {
           background: #5b52e8;
           color: white;
@@ -373,8 +399,6 @@ export default function Home() {
           font-size: 15px;
           box-shadow: 0 3px 12px rgba(91,82,232,0.25);
         }
-
-        /* AI bubble — white card */
         .a-bubble {
           background: #ffffff;
           padding: 14px 18px;
@@ -383,8 +407,6 @@ export default function Home() {
           color: #1f2937;
           border: 0.5px solid #e5e7eb;
         }
-
-        /* Fixed input */
         .input-area-fixed {
           position: absolute;
           bottom: 0;
@@ -396,8 +418,6 @@ export default function Home() {
         }
         .search-wrapper { width: 100%; max-width: 700px; }
         .disclaimer { font-size: 11px; color: #9ca3af; text-align: center; margin-top: 8px; }
-
-        /* Misc */
         .msg-img { max-width: 100%; border-radius: 10px; margin-bottom: 8px; }
         .ai-av {
           width: 30px; height: 30px;
