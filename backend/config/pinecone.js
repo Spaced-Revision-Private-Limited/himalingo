@@ -1,8 +1,9 @@
 // config/pinecone.js — Pinecone setup
 import { Pinecone } from "@pinecone-database/pinecone";
+import { envConfig } from "./env.config.js";
 
 // 1. Initialize Pinecone
-export const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+export const pc = new Pinecone({ apiKey: envConfig.PINECONE_API_KEY});
 export const index = pc.Index("translation"); 
 
 // ── Embed a query for searching ───────────────────────────────────────────
@@ -28,6 +29,7 @@ export async function embedQuery(text) {
     throw err; // Re-throw so the service knows it failed
   }
 }
+
 
 // ── Search Pinecone with language filter ──────────────────────────────────
 export async function searchPinecone(query, language, topK = 5) {

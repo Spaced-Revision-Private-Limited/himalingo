@@ -34,7 +34,7 @@ function cleanOutput(text) {
 
 // ── Route ─────────────────────────────────────────────────────────────────
 
-router.post("/translate", upload.single("image"), async (req, res) => {
+router.post("/", upload.single("image"), async (req, res) => {
   try {
     const { text } = req.body;
 
@@ -112,6 +112,10 @@ router.post("/translate", upload.single("image"), async (req, res) => {
     }
 
     console.log(`[Translate] Final Result: "${cleaned}"`);
+
+    const userId = req.user.id
+
+    // now save it to the History collection
 
     // --- THE FIX: SEND THE RESPONSE TO THE BROWSER ---
     return res.json({ 

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const HistorySchema = new mongoose.Schema({
   chatId:         { type: String, unique: true, required: true },
-  userEmail:      { type: String, required: true },
+  userId:         { type: mongoose.SchemaTypes.ObjectId, required: true, ref: 'User' },
   originalText:   String,
   translatedText: String,
   mode:           String,

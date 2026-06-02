@@ -4,9 +4,10 @@ import "./config/db.js";
 import "./config/pinecone.js";
 import authRoutes from "./routes/auth.js";
 import translateRoutes from "./routes/translate.js";
-import chatRoutes from "./routes/chat.js";
 import historyRoutes from "./routes/history.js";
 import adminRoutes from "./routes/admin.js";
+// FIX 1: Change 'auth' to 'protect' to match your middleware file export
+import { auth } from "./middlewares/auth.middleware.js"; 
 
 const app = express();
 
@@ -18,15 +19,31 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use("/admin", adminRoutes);
-app.use("/api", authRoutes);
-app.use("/history", historyRoutes);
-app.use("/", translateRoutes);
-app.use("/", chatRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/auth", authRoutes);
 
-app.use((req, res, next, error) => {
-  console.error("Unhandled Error:", error);
-  res.status(500).json({ success: false, message: "Internal Server Error" });
+// FIX 2: Use 'protect' here for your history routes security guard
+app.use("/api/history", auth, historyRoutes); 
+
+app.use("/api/translate",auth, translateRoutes);
+
+app.route("/health").get((req, res) => {
+  return res.status(200).json({
+    success: true,
+    health: "GOOD",
+    message: "System is running GOOD"
+  });
+});
+app.get("/api/test-me", (req, res) => {
+  return res.json({ message: "Yes, app.js is live and updating!" });
+});
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ 
+        success: false, 
+        message: err.message || "Internal Server Error" 
+    });
 });
 
 export default app;
