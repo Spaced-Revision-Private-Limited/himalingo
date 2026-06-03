@@ -11,10 +11,23 @@ function LoginPopup({ onLoginSuccess, onClose }) {
     e.preventDefault();
     setError("");
 
+    // --- FRONTEND VALIDATION ---
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
     if (!isLogin && password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
+    // ---------------------------
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
@@ -104,7 +117,7 @@ function LoginPopup({ onLoginSuccess, onClose }) {
             setIsLogin(!isLogin);
             setError("");
           }}>
-            {isLogin ? " Sign Up" : " Login"}
+            {isLogin ? " Sign Up" : "Login"}
           </span>
         </p>
       </div>
