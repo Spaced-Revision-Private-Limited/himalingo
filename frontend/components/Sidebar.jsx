@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 function Sidebar({ 
@@ -21,137 +22,337 @@ function Sidebar({
   };
 
   return (
-    <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-      <div className="sidebar-top">
-        <div className="sidebar-header">
-          {isOpen && <span className="brand">Himalingo</span>}
-          <button className="toggle-btn" onClick={toggleSidebar}>
-            {isOpen ? '◀' : '▶'}
-          </button>
-        </div>
-        
-        <button className={`new-chat-btn ${!loggedIn ? 'hidden-element' : ''}`} onClick={onNewChat}>
-          <span className="plus-icon">+</span>
-          {isOpen && "New Chat"}
-        </button>
+    <>
+      {isOpen && <div className="backdrop" onClick={toggleSidebar} />}
 
-        {!loggedIn && (
-          <button className="login-btn-top" onClick={() => setLoginOpen(true)}>
-            <span className="icon">👤</span>
-            {isOpen && "Log in"}
-          </button>
-        )}
-      </div>
+      <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
 
-      <div className={`sidebar-history ${!loggedIn ? 'hidden-element' : ''}`}>
-        <div className="history-header">
-          {isOpen && <p className="history-label">Recent History</p>}
-          {isOpen && history && history.length > 0 && (
-            <button className="clear-btn" onClick={onClearHistory}>Clear All</button>
+        {/* TOP BAR — ChatGPT style */}
+        <div className="sidebar-top">
+          <div className="top-row">
+            <button className="icon-btn" onClick={toggleSidebar} title="Toggle sidebar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            {isOpen && <span className="brand">Himalingo</span>}
+            {isOpen && (
+              <button className="icon-btn" onClick={onNewChat} title="New chat">
+                {/* <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg> */}
+              </button>
+            )}
+          </div>
+          {!isOpen && (
+            <button className="icon-btn centered" onClick={onNewChat} title="New chat">
+              {/* <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg> */}
+            </button>
+          )}
+          {!loggedIn && isOpen && (
+            <button className="login-btn-top" onClick={() => setLoginOpen(true)}>
+              <span>👤</span>
+              Log in
+            </button>
           )}
         </div>
 
-        {isOpen && history && history.length > 0 ? (
-          /* --- THE MOVE TO TOP LOGIC --- */
-          [...history].sort((a, b) => {
-            // 1. Pinned items always stay at the very top
-            if (a.pinned && !b.pinned) return -1;
-            if (!a.pinned && b.pinned) return 1;
-            
-            // 2. Otherwise, sort by latest interaction (updatedAt)
-            return new Date(b.updatedAt) - new Date(a.updatedAt);
-          }).map((item, index) => (
-            <div 
-              key={item.chatId || index} 
-              className={`history-item ${item.pinned ? 'pinned' : ''}`}
-              onClick={() => onSelectItem(item)}
-            >
-              {/* NO ICONS: Item type icons removed as requested */}
-              <span className="history-text" title={item.firstQuery || item.originalText}>
-                {item.firstQuery || item.originalText}
-              </span>
-              
-              {isOpen && (
+        {/* HISTORY — keep exactly as before */}
+        <div className={`sidebar-history ${!loggedIn ? 'hidden-element' : ''}`}>
+          <div className="history-header">
+            {isOpen && <p className="history-label">Recent History</p>}
+            {isOpen && history && history.length > 0 && (
+              <button className="clear-btn" onClick={onClearHistory}>Clear All</button>
+            )}
+          </div>
+
+          {isOpen && history && history.length > 0 ? (
+            [...history].sort((a, b) => {
+              if (a.pinned && !b.pinned) return -1;
+              if (!a.pinned && b.pinned) return 1;
+              return new Date(b.updatedAt) - new Date(a.updatedAt);
+            }).map((item, index) => (
+              <div
+                key={item.chatId || index}
+                className={`history-item ${item.pinned ? 'pinned' : ''}`}
+                onClick={() => onSelectItem(item)}
+              >
+                <span className="history-text" title={item.firstQuery || item.originalText}>
+                  {item.firstQuery || item.originalText}
+                </span>
                 <div className="history-actions">
-                  <button 
-                    className="pin-item-btn" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTogglePin(e, item.chatId, item.pinned);
-                    }}
-                    title={item.pinned ? "Unpin" : "Pin to top"}
-                  >
-                    {item.pinned ? '' : ''}
-                  </button>
-                  <button 
-                    className="delete-item-btn" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteItem(e, item.chatId);
-                    }}
-                    title="Delete this history"
-                  >
-                    🗑️
-                  </button>
+                  <button
+                    className="pin-btn"
+                    onClick={(e) => { e.stopPropagation(); onTogglePin(e, item.chatId, item.pinned); }}
+                    title={item.pinned ? "Unpin" : "Pin"}
+                  >📌</button>
+                  <button
+                    className="delete-btn"
+                    onClick={(e) => { e.stopPropagation(); onDeleteItem(e, item.chatId); }}
+                    title="Delete"
+                  >🗑️</button>
+                </div>
+              </div>
+            ))
+          ) : (
+            isOpen && <p className="empty-msg">No history yet</p>
+          )}
+        </div>
+
+        {/* BOTTOM — user profile */}
+        {loggedIn && (
+          <div className="sidebar-bottom">
+            <div className="user-profile">
+              <div className="user-avatar">{userEmail?.charAt(0).toUpperCase()}</div>
+              {isOpen && (
+                <div className="user-details">
+                  <span className="user-email">{userEmail}</span>
+                  <button className="signout-btn" onClick={handleSignOut}>Sign out</button>
                 </div>
               )}
             </div>
-          ))
-        ) : (
-          isOpen && <p className="empty-msg">No history yet</p>
-        )}
-      </div>
-
-      {loggedIn && (
-        <div className="sidebar-bottom">
-          <div className="user-profile">
-            <div className="user-avatar">{userEmail?.charAt(0).toUpperCase()}</div>
-            {isOpen && (
-              <div className="user-details">
-                <span className="user-email">{userEmail}</span>
-                <button className="signout-btn" onClick={handleSignOut}>Sign out</button>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
 
       <style jsx>{`
         .hidden-element { display: none !important; }
-        .sidebar { height: 100vh; border-right: 1px solid rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; position: fixed; left: 0; top: 0; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 100; overflow: hidden; box-shadow: 0 0 25px rgba(0, 0, 0, 0.05); background-color:#F9FAFB; }
-        .sidebar.open { width: 260px; }
-        .sidebar.closed { width: 72px; }
-        .sidebar-top { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
-        .sidebar-header { display: flex; align-items: center; justify-content: space-between; height: 40px; margin-bottom: 10px; }
-        .brand { font-weight: 800; font-size: 1.5rem; background: linear-gradient(135deg, black, #08030d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .toggle-btn { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 8px; color: #6b7280; }
-        .toggle-btn:hover { background: rgba(102, 126, 234, 0.1); color: #667eea; }
-        .new-chat-btn, .login-btn-top { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 500; font-size: 14px; transition: all 0.3s ease; border: none; }
-        .plus-icon{ font-size: 24px; font-weight: 600; line-height: 1; margin-right: 2px; display: inline-flex; align-items: center; justify-content: center; }
-        .login-btn-top { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .sidebar-history { flex: 1; overflow-y: auto; padding: 0 16px; margin-top: 10px; }
-        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; }
-        .history-label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
-        .clear-btn { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border: none; color: white; font-size: 11px; cursor: pointer; padding: 4px 10px; border-radius: 10px; }
-        .history-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-size: 14px; transition: 0.3s; margin-bottom: 6px; background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(0, 0, 0, 0.05); position: relative; }
-        .history-item.pinned { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; border-color: #f59e0b; }
-        .history-item:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; transform: translateX(5px); }
-        .history-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #4b5563; flex: 1; }
-        .history-item:hover .history-text { color: white; }
-        .history-actions { display: flex; gap: 4px; }
-        .pin-item-btn, .delete-item-btn { background: transparent; border: none; color: #9ca3af; font-size: 18px; cursor: pointer; padding: 0 5px; opacity: 0; transition: opacity 0.2s; }
-        .history-item:hover .pin-item-btn, .history-item:hover .delete-item-btn { opacity: 1; color: white; }
-        .pin-item-btn:hover, .delete-item-btn:hover { transform: scale(1.2); color: #ff4d4d !important; }
-        .sidebar-bottom { padding: 16px; border-top: 1px solid rgba(0, 0, 0, 0.08); background: #f9f9f9; }
-        .user-profile { display: flex; align-items: center; gap: 12px; }
-        .user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
-        .user-email { font-size: 12px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .signout-btn { background: none; border: none; color: #ef4444; font-size: 11px; cursor: pointer; padding: 0; font-weight: 600; }
+
+        .backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.3);
+          z-index: 150;
+        }
+
+        /* Sidebar — white like before */
+        .sidebar {
+          height: 100vh;
+          border-right: 1px solid rgba(0,0,0,0.08);
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 200;
+          background: #F9FAFB;
+          transition: width 0.3s ease;
+          overflow: hidden;
+          box-shadow: 0 0 25px rgba(0,0,0,0.05);
+        }
+        .sidebar.open  { width: 260px; }
+        .sidebar.closed { width: 60px; }
+
+        /* TOP BAR */
+        .sidebar-top {
+          padding: 10px 8px;
+          flex-shrink: 0;
+          border-bottom: 1px solid rgba(0,0,0,0.06);
+          background: #F9FAFB;
+        }
+        .top-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          height: 40px;
+        }
+
+        /* Icon buttons */
+        .icon-btn {
+          background: none;
+          border: none;
+          color: #374151;
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,0.06); color: #111827; }
+        .icon-btn.centered {
+          width: 100%;
+          margin-top: 6px;
+        }
+
+        .brand {
+          font-weight: 800;
+          font-size: 1.2rem;
+          background: linear-gradient(135deg, #111827, #374151);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          flex: 1;
+          padding-left: 10px;
+        }
+
+        .login-btn-top {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          margin-top: 8px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          border: none;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+        .login-btn-top:hover { opacity: 0.9; }
+
+        /* HISTORY */
+        .sidebar-history {
+          flex: 1;
+          overflow-y: auto;
+          padding: 8px;
+        }
+        .history-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 6px 4px;
+          margin-bottom: 4px;
+        }
+        .history-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .clear-btn {
+          background: none;
+          border: none;
+          color: #6b7280;
+          font-size: 11px;
+          cursor: pointer;
+          padding: 2px 6px;
+          border-radius: 6px;
+        }
+        .clear-btn:hover { color: #ef4444; background: #fee2e2; }
+
+        .history-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 12px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 13px;
+          color: #4b5563;
+          transition: all 0.2s;
+          margin-bottom: 2px;
+          background: rgba(255,255,255,0.7);
+          border: 1px solid rgba(0,0,0,0.04);
+        }
+        .history-item:hover {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          transform: translateX(4px);
+          border-color: transparent;
+        }
+        .history-item.pinned {
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+          color: white;
+          border-color: transparent;
+        }
+        .history-text {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .history-actions { display: none; gap: 2px; }
+        .history-item:hover .history-actions { display: flex; }
+        .history-item.pinned .history-actions { display: flex; }
+        .pin-btn, .delete-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 12px;
+          padding: 2px 3px;
+          border-radius: 4px;
+          opacity: 0.8;
+        }
+        .pin-btn:hover, .delete-btn:hover { opacity: 1; }
+
+        .empty-msg {
+          font-size: 13px;
+          color: #9ca3af;
+          text-align: center;
+          margin-top: 20px;
+        }
+
+        /* BOTTOM */
+        .sidebar-bottom {
+          padding: 12px;
+          border-top: 1px solid rgba(0,0,0,0.08);
+          background: #f9f9f9;
+        }
+        .user-profile {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .user-profile:hover { background: rgba(0,0,0,0.05); }
+        .user-avatar {
+          width: 32px;
+          height: 32px;
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 13px;
+          flex-shrink: 0;
+        }
+        .user-details {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          overflow: hidden;
+        }
+        .user-email {
+          font-size: 12px;
+          color: #374151;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .signout-btn {
+          background: none;
+          border: none;
+          color: #ef4444;
+          font-size: 11px;
+          cursor: pointer;
+          padding: 0;
+          font-weight: 600;
+        }
+
         .sidebar-history::-webkit-scrollbar { width: 4px; }
-        .sidebar-history::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .empty-msg { font-size: 13px; color: #9ca3af; text-align: center; margin-top: 20px; }
+        .sidebar-history::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        @media (max-width: 768px) {
+          .sidebar.closed { width: 0; }
+        }
+        @media (max-width: 480px) {
+          .sidebar.open { width: 85vw; }
+        }
       `}</style>
-    </div>
+    </>
   );
 }
 
