@@ -95,62 +95,36 @@ body {
   z-index: 100;
 }
 
-@media (min-width: 1024px) {
-  .chat-content {
-    max-width: 840px;
-  }
-}
 
-@media (max-width: 1023px) {
-  .chat-content {
-    max-width: 90%; 
-    padding-bottom: 150px;
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0 !important;
   }
-  
+  .landing-view {
+    padding-top: 60px;
+  }
+  .chat-content {
+    padding: 60px 12px 140px 12px;
+    max-width: 100%;
+  }
   .user-query-text {
-    max-width: 80%; 
+    max-width: 88%;
+    font-size: 15px;
   }
-
   .ai-response-content {
-    max-width: 90%;
+    max-width: 100%;
+    font-size: 15px;
+  }
+  .input-area {
+    padding: 12px;
   }
 }
 
-@media (max-width: 767px) {
-  .sidebar.open { width: 220px; }
-  .sidebar.closed { width: 0; padding: 0; }
-  .main { margin-left: 0; }
-  
-  .chat-viewport {
-    padding-top: 20px; 
+@media (max-width: 480px) {
+  .logo {
+    font-size: 2rem;
   }
-
-  .chat-content { 
-    padding: 0 16px 140px 16px; 
-    width: 100%;
-  }
-  
-  .landing-input-wrapper { padding: 0 12px; }
-  .input-area { 
-    padding: 12px 16px; 
-    background: #ffffff; 
-  }
-  
-  .logo { font-size: 2.2rem; }
-  
-  .user-query-text { 
-    max-width: 88%; 
-    font-size: 15px;
-    padding: 10px 16px;
-  }
-  
-  .ai-response-content { 
-    max-width: 100%; 
-    font-size: 15px; 
-  }
-
-  .ai-response-row {
-    gap: 12px; 
-    margin-bottom: 24px;
+  .chat-content {
+    padding: 60px 8px 130px 8px;
   }
 }

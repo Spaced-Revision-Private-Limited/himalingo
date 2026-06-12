@@ -19,7 +19,7 @@ import Sidebar from "../components/Sidebar";
 import SearchBox from "../components/SearchBox";
 import Suggestions from "../components/Suggestions";
 import LoginPopup from "../components/LoginPopup";
-import { FaCopy, FaVolumeUp, FaCheck } from "react-icons/fa";
+import { FaCopy, FaVolumeUp, FaCheck, FaBars } from "react-icons/fa"; // Added FaBars for a mobile menu button
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -35,21 +35,28 @@ export default function Home() {
   const userEmail      = useSelector(s => s.app.userEmail);
 
   const [mounted, setMounted]         = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // FIX 1: Ensure sidebar defaults to CLOSED on mobile view when page mounts
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const [loginOpen, setLoginOpen]     = useState(false);
   const [history, setHistory]         = useState([]);
   const [copiedText, setCopiedText]   = useState(null);
 
   const scrollRef = useRef(null);
 
-  // ── 1. Initial Application Setup ─────────────────────────────────────────
   useEffect(() => {
     setMounted(true);
+    // Safely detect desktop setting after mounting on client side
+    if (typeof window !== "undefined" && window.innerWidth > 768) {
+      setSidebarOpen(true);
+    }
+    
     const token = localStorage.getItem("token");
     const email = localStorage.getItem("userEmail");
     if (token && email) {
       dispatch(loginUser({ email }));
-      fetchHistory(); 
+      fetchHistory();
     }
   }, []);
 
@@ -59,13 +66,11 @@ export default function Home() {
     }
   }, [messages]);
 
-  // ── 2. Secure History Database Sync ─────────────────────────────────────
   const fetchHistory = async () => {
     if (!apiUrl) return;
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-
       const response = await fetch(`${apiUrl}/api/history?t=${Date.now()}`, {
         method: "GET",
         headers: {
@@ -73,32 +78,27 @@ export default function Home() {
           "Content-Type": "application/json"
         }
       });
-
       const contentType = response.headers.get("content-type");
       if (!response.ok || !contentType?.includes("application/json")) return;
-      
       const data = await response.json();
-      if (data.success) {
-        setHistory(data.history || []);
-      }
-    } catch (err) { 
-      console.error("History fetch failed", err); 
+      if (data.success) setHistory(data.history || []);
+    } catch (err) {
+      console.error("History fetch failed", err);
     }
   };
 
-  // ── 3. Session Management Triggers ──────────────────────────────────────
   const handleDeleteItem = async (e, chatId) => {
     if (!loggedIn || !apiUrl) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${apiUrl}/api/history/session/${chatId}`, { 
+      const res = await fetch(`${apiUrl}/api/history/session/${chatId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data.success) { 
-        if (currentChatId === chatId) handleNewChat(); 
-        fetchHistory(); 
+      if (data.success) {
+        if (currentChatId === chatId) handleNewChat();
+        fetchHistory();
       }
     } catch (err) { console.error("Delete failed", err); }
   };
@@ -107,7 +107,7 @@ export default function Home() {
     if (!loggedIn || !apiUrl) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${apiUrl}/api/history/session/${chatId}/pin`, { 
+      const res = await fetch(`${apiUrl}/api/history/session/${chatId}/pin`, {
         method: "PATCH",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -121,7 +121,7 @@ export default function Home() {
     if (!window.confirm("Clear all history?")) return;
     try {
       const token = localStorage.getItem("token");
-      await fetch(`${apiUrl}/api/history`, { 
+      await fetch(`${apiUrl}/api/history`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -130,10 +130,12 @@ export default function Home() {
     } catch (err) { console.error("Clear failed", err); }
   };
 
-  // ── 4. Form Submission Flow ─────────────────────────────────────────────
   const handleSearchSubmit = async (textFromInput, imageFile, selectedLangFromSuggestion) => {
     if (!textFromInput && !imageFile) return;
     if (!loggedIn) { setLoginOpen(true); return; }
+
+    // Auto-close sidebar on mobile once a search executes so user can see chat window
+    if (window.innerWidth <= 768) setSidebarOpen(false);
 
     const resolvedLang = selectedLangFromSuggestion || targetLanguage || "Bhutia";
     const isTranslate  = textFromInput?.toLowerCase().includes("translate") || mode === "translate";
@@ -147,41 +149,35 @@ export default function Home() {
     dispatch(addMessage({ role: "ai", content: "Thinking...", typing: true }));
 
     try {
-      const token = localStorage.getItem("token"); 
-
+      const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("text", textFromInput || "");
       formData.append("targetLanguage", resolvedLang);
       formData.append("mode", resolvedMode);
-      formData.append("chatId", chatId); 
+      formData.append("chatId", chatId);
       formData.append("history", JSON.stringify(messages.filter(m => !m.typing)));
       if (imageFile) formData.append("image", imageFile);
 
-      const endpoint = resolvedMode === "chat" ? "/api/chat" : "/api/translate"; 
-      const response = await fetch(`${apiUrl}${endpoint}`, { 
-        method: "POST", 
+      const endpoint = resolvedMode === "chat" ? "/api/chat" : "/api/translate";
+      const response = await fetch(`${apiUrl}${endpoint}`, {
+        method: "POST",
         body: formData,
         headers: { "Authorization": `Bearer ${token}` }
       });
 
-      // 1. Parse JSON first safely inside scope
       const data = await response.json();
 
-      // 2. Evaluate backend middleware schema outcome
       if (!response.ok || data.success === false) {
         const backendError = data.error || "Validation failed on server.";
-        
-        dispatch(updateLastMessage({ 
-          role: "ai", 
-          content: `⚠️ **Validation Error:** ${backendError}`, 
-          typing: false 
+        dispatch(updateLastMessage({
+          role: "ai",
+          content: `⚠️ **Validation Error:** ${backendError}`,
+          typing: false
         }));
-        
-        dispatch(setIsChatting(false)); 
-        return; 
+        dispatch(setIsChatting(false));
+        return;
       }
 
-      // 3. Render content block if validation passes
       const aiResponse = resolvedMode === "chat" ? data.response : data.translated;
       dispatch(updateLastMessage({ role: "ai", content: aiResponse || "No response.", typing: false }));
       fetchHistory();
@@ -192,7 +188,6 @@ export default function Home() {
     }
   };
 
-  // ── 5. Accessibility Audio/Text Helpers ─────────────────────────────────
   const speakText = (text) => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -211,7 +206,10 @@ export default function Home() {
     });
   };
 
-  const handleNewChat = () => { dispatch(resetChat()); };
+  const handleNewChat = () => { 
+    dispatch(resetChat()); 
+    if (window.innerWidth <= 768) setSidebarOpen(false);
+  };
 
   if (!mounted) return null;
 
@@ -219,16 +217,27 @@ export default function Home() {
     <div className="container">
       <Head><title>Himalingo</title></Head>
 
+      {/* Mobile Drawer Overlay Background */}
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
+
       <Sidebar
-        isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        loggedIn={loggedIn} userEmail={userEmail} onNewChat={handleNewChat}
-        history={history} onClearHistory={handleClearHistory}
-        onDeleteItem={handleDeleteItem} onTogglePin={handleTogglePin}
+        isOpen={sidebarOpen}
+        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        loggedIn={loggedIn}
+        userEmail={userEmail}
+        onNewChat={handleNewChat}
+        history={history}
+        onClearHistory={handleClearHistory}
+        onDeleteItem={handleDeleteItem}
+        onTogglePin={handleTogglePin}
         setLoginOpen={setLoginOpen}
         onSelectItem={(item) => {
           dispatch(setIsChatting(true));
           dispatch(setCurrentChatId(item.chatId));
           dispatch(setMode(item.mode || "chat"));
+          if (window.innerWidth <= 768) setSidebarOpen(false); // Close drawer after selection
           try {
             const raw = item.translatedText.trim();
             const parsed = (raw.startsWith("[") || raw.startsWith("{"))
@@ -241,15 +250,18 @@ export default function Home() {
         }}
       />
 
+      {/* FIX 2: Added a floating trigger menu button specifically for mobile screens */}
+      <button className="mobile-menu-trigger" onClick={() => setSidebarOpen(!sidebarOpen)}>
+        <FaBars />
+      </button>
+
       <main className="main">
         <div className={isChatting ? "chat-viewport" : "landing-view"} ref={scrollRef}>
 
-          {/* ── LANDING PAGE VIEW ── */}
           {!isChatting ? (
             <div className="landing-content">
               <h1 className="logo">Himalingo</h1>
               <p className="subtitle">English to Bhutia translation</p>
-
               <div className="landing-input-wrapper">
                 <SearchBox
                   isLoggedIn={loggedIn}
@@ -258,7 +270,6 @@ export default function Home() {
                   effectiveMode={mode}
                   onFocus={() => !loggedIn && setLoginOpen(true)}
                 />
-
                 <Suggestions
                   onSelect={handleSearchSubmit}
                   setMode={(m) => dispatch(setMode(m))}
@@ -268,7 +279,6 @@ export default function Home() {
               </div>
             </div>
 
-          /* ── ACTIVE CHAT SCREEN VIEW ── */
           ) : (
             <div className="chat-content">
               {messages.map((msg, index) => (
@@ -281,8 +291,8 @@ export default function Home() {
                       : <ReactMarkdown>{msg.content}</ReactMarkdown>}
                     {msg.role === "ai" && !msg.typing && (
                       <div className="action-buttons">
-                        <button className="action-btn" onClick={() => speakText(msg.content)} title="Listen"><FaVolumeUp /></button>
-                        <button className="action-btn" onClick={() => copyToClipboard(msg.content)} title="Copy">
+                        <button className="action-btn" onClick={() => speakText(msg.content)}><FaVolumeUp /></button>
+                        <button className="action-btn" onClick={() => copyToClipboard(msg.content)}>
                           {copiedText === msg.content ? <FaCheck style={{ color: "#10b981" }} /> : <FaCopy />}
                         </button>
                       </div>
@@ -294,7 +304,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Floating Bottom Input Dock */}
         {isChatting && (
           <div className="input-area-fixed">
             <div className="search-wrapper">
@@ -326,17 +335,21 @@ export default function Home() {
         .container {
           display: flex;
           height: 100vh;
-          background: #f8f7f4; 
+          background: #f8f7f4;
+          position: relative;
         }
         .main {
           flex: 1;
           display: flex;
           flex-direction: column;
-          margin-left: ${sidebarOpen ? "260px" : "72px"};
+          margin-left: ${sidebarOpen ? "260px" : "60px"};
           transition: margin-left 0.3s ease;
           position: relative;
           overflow: hidden;
           background: #f8f7f4;
+        }
+        .mobile-menu-trigger {
+          display: none;
         }
         .landing-view {
           flex: 1;
@@ -363,7 +376,6 @@ export default function Home() {
           font-size: 15px;
           color: #6b7280;
           margin-bottom: 28px;
-          font-weight: 400;
         }
         .landing-input-wrapper {
           width: 100%;
@@ -387,9 +399,8 @@ export default function Home() {
           padding: 40px 20px 180px 20px;
         }
         .msg-row { display: flex; gap: 12px; width: 100%; }
-        .u-row   { justify-content: flex-end; }
-        .a-row   { justify-content: flex-start; }
-
+        .u-row { justify-content: flex-end; }
+        .a-row { justify-content: flex-start; }
         .u-bubble {
           background: #5b52e8;
           color: white;
@@ -451,12 +462,50 @@ export default function Home() {
         .dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes bounce {
           0%,100% { transform: translateY(0); }
-          50%      { transform: translateY(-5px); }
+          50% { transform: translateY(-5px); }
         }
 
+        /* FIX 3: Balanced Responsive Rules for Mobile Devices */
         @media (max-width: 768px) {
-          .main { margin-left: ${sidebarOpen ? "260px" : "0"}; }
-          .chat-content { padding: 20px 12px 160px 12px; }
+          .main { 
+            margin-left: 0 !important; 
+          }
+          .mobile-menu-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 99;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            color: #1a1a1a;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+          }
+          .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 90; /* Right below the sidebar */
+          }
+          .chat-content { padding: 80px 12px 160px 12px; }
+          .landing-content { padding-top: 100px; }
+          .logo { font-size: 2.4rem; }
+          .landing-input-wrapper { padding: 0 16px; }
+        }
+
+        @media (max-width: 480px) {
+          .logo { font-size: 2rem; }
+          .u-bubble { max-width: 88%; font-size: 14px; }
+          .chat-content { padding: 80px 8px 150px 8px; }
         }
       `}</style>
     </div>
