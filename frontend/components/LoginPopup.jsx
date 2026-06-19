@@ -23,6 +23,7 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       setError(`Password must be between 8 and 16 characters long (Currently: ${password.length}).`);
       return;
     }
+    // ---------------------------
 
     if (!isLogin && password !== confirmPassword) {
       setError("Passwords do not match.");
