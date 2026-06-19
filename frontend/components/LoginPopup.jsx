@@ -23,6 +23,31 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       setError(`Password must be between 8 and 16 characters long (Currently: ${password.length}).`);
       return;
     }
+    // ---------------------------
+
+    if (!isLogin && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    // ---------------------------
+
+    // Fallback logic if NEXT_PUBLIC_API_URL is missing or broken in .env
+    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    
+    // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
+    const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
+
+    if (!isLogin && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    // ---------------------------
+
+    // Fallback logic if NEXT_PUBLIC_API_URL is missing or broken in .env
+    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    
+    // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
+    const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
 
     if (!isLogin && password !== confirmPassword) {
       setError("Passwords do not match.");
