@@ -1,8 +1,9 @@
+
 "use client";
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const apiUrl = "http://localhost:5000/api";
+const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api` || "http://localhost:5000";
 
 export default function AdminDashboard() {
     const [currentView, setCurrentView] = useState("dashboard");
@@ -10,12 +11,10 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     
-    // Auth States
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     
-    // Validation Error States
     const [authError, setAuthError] = useState("");
     const [fieldErrors, setFieldErrors] = useState({ email: "", password: "" });
     const [authLoading, setAuthLoading] = useState(false);
@@ -26,7 +25,7 @@ export default function AdminDashboard() {
             setIsLoggedIn(true);
         } else {
             setIsLoggedIn(false);
-            setLoading(false); 
+            setLoading(false);
         }
     }, []);
 
@@ -54,21 +53,20 @@ export default function AdminDashboard() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             alert(res.data.message);
-            fetchData(); 
+            fetchData();
         } catch (err) {
             alert("Sync failed");
         }
     };
 
-    useEffect(() => { 
-        if (isLoggedIn) fetchData(); 
+    useEffect(() => {
+        if (isLoggedIn) fetchData();
     }, [isLoggedIn]);
 
     const validateForm = (isSignup) => {
         let isValid = true;
         let errors = { email: "", password: "" };
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
         if (!email.trim()) {
             errors.email = "Email address is required.";
             isValid = false;
@@ -76,15 +74,13 @@ export default function AdminDashboard() {
             errors.email = "Please enter a valid email format.";
             isValid = false;
         }
-
         if (!password) {
             errors.password = "Password is required.";
             isValid = false;
         } else if (isSignup && (password.length < 8 || password.length > 16)) {
-            errors.password = `Password must be between 8 and 16 characters.`;
+            errors.password = "Password must be between 8 and 16 characters.";
             isValid = false;
         }
-
         setFieldErrors(errors);
         return isValid;
     };
@@ -93,10 +89,9 @@ export default function AdminDashboard() {
         e.preventDefault();
         setAuthError("");
         if (!validateForm(false)) return;
-
         setAuthLoading(true);
         try {
-            const res = await axios.post(`${apiUrl}/auth/login`, { email, password });
+            const res = await axios.post(`${apiUrl}/admin/login`, { email, password });
             if (res.data.success && res.data.token) {
                 localStorage.setItem("adminToken", res.data.token);
                 setIsLoggedIn(true);
@@ -116,14 +111,13 @@ export default function AdminDashboard() {
         e.preventDefault();
         setAuthError("");
         if (!validateForm(true)) return;
-
         setAuthLoading(true);
         try {
             const token = localStorage.getItem("adminToken");
-            const res = await axios.post(`${apiUrl}/auth/signup`, { 
+            const res = await axios.post(`${apiUrl}/auth/signup`, {
                 name: "Himalingo Admin Staff",
-                email, 
-                password 
+                email,
+                password
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -132,7 +126,7 @@ export default function AdminDashboard() {
                 setEmail("");
                 setPassword("");
                 setFieldErrors({ email: "", password: "" });
-                setCurrentView("dashboard"); 
+                setCurrentView("dashboard");
             }
         } catch (err) {
             console.error("Registration failed", err);
@@ -175,7 +169,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const filteredData = data.filter(item => 
+    const filteredData = data.filter(item =>
         item.english?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.transliteration?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -183,7 +177,7 @@ export default function AdminDashboard() {
     if (loading) {
         return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#F2F5F9', fontFamily: 'sans-serif', color: '#7C8FAC' }}>
-                <p style={{fontSize: '16px', fontWeight: '500'}}>Verifying session status...</p>
+                <p style={{ fontSize: '16px', fontWeight: '500' }}>Verifying session status...</p>
             </div>
         );
     }
@@ -192,11 +186,11 @@ export default function AdminDashboard() {
         return (
             <div style={styles.loginScreen}>
                 <div style={styles.loginCard}>
-                    <h2 style={{color: '#5D87FF', marginBottom: '5px', fontSize: '28px'}}>Himalingo</h2>
-                    <p style={{color: '#7C8FAC', marginBottom: '25px', fontSize: '14px'}}>Admin Authentication Panel</p>
-                    
+                    <h2 style={{ color: '#5D87FF', marginBottom: '5px', fontSize: '28px' }}>Himalingo</h2>
+                    <p style={{ color: '#7C8FAC', marginBottom: '25px', fontSize: '14px' }}>Admin Authentication Panel</p>
+
                     {authError && <div style={styles.errorAlert}>{authError}</div>}
-                    
+
                     <form onSubmit={handleLoginSubmit} style={styles.formContainer} noValidate>
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Email Address</label>
@@ -208,7 +202,9 @@ export default function AdminDashboard() {
                             <input type="password" placeholder="••••••••" style={{ ...styles.loginInput, borderColor: fieldErrors.password ? '#E02424' : '#dfe5ef' }} value={password} onChange={(e) => setPassword(e.target.value)} />
                             {fieldErrors.password && <span style={styles.inlineFieldError}>{fieldErrors.password}</span>}
                         </div>
-                        <button type="submit" disabled={authLoading} style={styles.btnLogin}>Log In to Dashboard</button>
+                        <button type="submit" disabled={authLoading} style={styles.btnLogin}>
+                            {authLoading ? "Logging in..." : "Log In to Dashboard"}
+                        </button>
                     </form>
                 </div>
             </div>
@@ -225,11 +221,12 @@ export default function AdminDashboard() {
                 </div>
                 <button onClick={handleLogout} style={styles.btnLogout}>Log Out</button>
             </div>
+
             <div style={styles.main}>
                 {currentView === "dashboard" ? (
                     <>
                         <div style={styles.header}>
-                            <h1 style={{fontSize: '24px', fontWeight: 'bold', color: '#2A3547'}}>Translation Management</h1>
+                            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#2A3547' }}>Translation Management</h1>
                             <button onClick={handleSync} style={styles.btnSync}>Sync JSON Files</button>
                         </div>
                         <div style={styles.card}>
@@ -240,7 +237,7 @@ export default function AdminDashboard() {
                                         <th style={styles.th}>English</th>
                                         <th style={styles.th}>Bhutia (Transliteration)</th>
                                         <th style={styles.th}>Status</th>
-                                        <th style={{...styles.th, textAlign: 'center'}}>Actions</th>
+                                        <th style={{ ...styles.th, textAlign: 'center' }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -256,7 +253,7 @@ export default function AdminDashboard() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td style={{...styles.td, textAlign: 'center'}}>
+                                            <td style={{ ...styles.td, textAlign: 'center' }}>
                                                 <button onClick={() => handleDelete(item._id)} style={styles.btnDelete}>Delete</button>
                                             </td>
                                         </tr>
@@ -266,19 +263,25 @@ export default function AdminDashboard() {
                         </div>
                     </>
                 ) : (
-                    <div style={{maxWidth: '500px'}}>
-                        <div style={styles.header}><h1 style={{fontSize: '24px', fontWeight: 'bold', color: '#2A3547'}}>Add New Admin Member</h1></div>
+                    <div style={{ maxWidth: '500px' }}>
+                        <div style={styles.header}>
+                            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#2A3547' }}>Add New Admin Member</h1>
+                        </div>
                         <div style={styles.card}>
                             <form onSubmit={handleRegisterSubmit} style={styles.formContainer} noValidate>
                                 <div style={styles.inputGroup}>
                                     <label style={styles.label}>Email Address</label>
                                     <input type="email" placeholder="team.member@himalingo.com" style={styles.loginInput} value={email} onChange={(e) => setEmail(e.target.value)} />
+                                    {fieldErrors.email && <span style={styles.inlineFieldError}>{fieldErrors.email}</span>}
                                 </div>
                                 <div style={styles.inputGroup}>
                                     <label style={styles.label}>Password</label>
                                     <input type="password" placeholder="••••••••" style={styles.loginInput} value={password} onChange={(e) => setPassword(e.target.value)} />
+                                    {fieldErrors.password && <span style={styles.inlineFieldError}>{fieldErrors.password}</span>}
                                 </div>
-                                <button type="submit" disabled={authLoading} style={styles.btnSync}>Confirm Registration</button>
+                                <button type="submit" disabled={authLoading} style={styles.btnSync}>
+                                    {authLoading ? "Registering..." : "Confirm Registration"}
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -289,21 +292,21 @@ export default function AdminDashboard() {
 }
 
 const styles = {
-    container: { display:'flex', background:'#F2F5F9', minHeight:'100vh', fontFamily: 'sans-serif' },
-    sidebar: { width:'240px', background:'#fff', padding:'30px', borderRight:'1px solid #e5eaef', position:'fixed', height:'100vh', display:'flex', flexDirection:'column', justifyContent:'space-between', boxSizing:'border-box' },
-    logo: { fontSize:'24px', fontWeight:'bold', marginBottom:'40px', color: '#5D87FF' },
-    navActive: { background:'#ECF2FF', color:'#5D87FF', padding:'12px', borderRadius:'8px', fontWeight:'600', cursor: 'pointer', marginBottom: '8px' },
-    navInactive: { color:'#7C8FAC', padding:'12px', borderRadius:'8px', fontWeight:'500', cursor: 'pointer', marginBottom: '8px' },
-    main: { flex:1, padding:'40px', marginLeft:'240px' },
-    header: { display:'flex', justifyContent:'space-between', alignItems: 'center', marginBottom:'30px' },
-    btnSync: { background:'#5D87FF', color:'#fff', border:'none', padding:'10px 20px', borderRadius:'8px', cursor:'pointer', fontWeight: '600' },
-    card: { background:'#fff', borderRadius:'12px', padding:'25px', boxShadow:'0 5px 20px rgba(0,0,0,0.05)' },
-    search: { width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #dfe5ef', marginBottom:'20px', boxSizing: 'border-box' },
-    table: { width:'100%', borderCollapse:'collapse' },
-    th: { textAlign:'left', padding:'15px', color:'#7C8FAC', borderBottom:'1px solid #f2f5f9', fontSize: '14px', fontWeight: '600' },
-    td: { padding:'15px', borderBottom:'1px solid #f2f5f9', color: '#2A3547', verticalAlign: 'middle' },
+    container: { display: 'flex', background: '#F2F5F9', minHeight: '100vh', fontFamily: 'sans-serif' },
+    sidebar: { width: '240px', background: '#fff', padding: '30px', borderRight: '1px solid #e5eaef', position: 'fixed', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' },
+    logo: { fontSize: '24px', fontWeight: 'bold', marginBottom: '40px', color: '#5D87FF' },
+    navActive: { background: '#ECF2FF', color: '#5D87FF', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', marginBottom: '8px' },
+    navInactive: { color: '#7C8FAC', padding: '12px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer', marginBottom: '8px' },
+    main: { flex: 1, padding: '40px', marginLeft: '240px' },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
+    btnSync: { background: '#5D87FF', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+    card: { background: '#fff', borderRadius: '12px', padding: '25px', boxShadow: '0 5px 20px rgba(0,0,0,0.05)' },
+    search: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #dfe5ef', marginBottom: '20px', boxSizing: 'border-box' },
+    table: { width: '100%', borderCollapse: 'collapse' },
+    th: { textAlign: 'left', padding: '15px', color: '#7C8FAC', borderBottom: '1px solid #f2f5f9', fontSize: '14px', fontWeight: '600' },
+    td: { padding: '15px', borderBottom: '1px solid #f2f5f9', color: '#2A3547', verticalAlign: 'middle' },
     loginScreen: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#F2F5F9' },
-    loginCard: { background: '#fff', padding: '40px', borderRadius: '12px', width: '380px', boxSizing: 'border-box', boxShadow:'0 5px 20px rgba(0,0,0,0.05)' },
+    loginCard: { background: '#fff', padding: '40px', borderRadius: '12px', width: '380px', boxSizing: 'border-box', boxShadow: '0 5px 20px rgba(0,0,0,0.05)' },
     formContainer: { textAlign: 'left', marginTop: '15px' },
     inputGroup: { marginBottom: '18px', display: 'flex', flexDirection: 'column' },
     label: { fontSize: '13px', fontWeight: '600', color: '#2A3547', marginBottom: '6px' },
