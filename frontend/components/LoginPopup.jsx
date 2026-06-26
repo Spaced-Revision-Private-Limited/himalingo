@@ -4,78 +4,37 @@ function LoginPopup({ onLoginSuccess, onClose }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); 
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // --- FRONTEND VALIDATION ---
+    // 1. Frontend Validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address.");
       return;
     }
 
-    // Synchronized with your backend Joi validation schema limits (8 - 16 characters)
     if (password.length < 8 || password.length > 16) {
       setError(`Password must be between 8 and 16 characters long (Currently: ${password.length}).`);
       return;
     }
-    // ---------------------------
 
     if (!isLogin && password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
-    // ---------------------------
 
-    // Fallback logic if NEXT_PUBLIC_API_URL is missing or broken in .env
+    // 2. Prepare API URL
     const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    
-    // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
-    const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
-
-    if (!isLogin && password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    // ---------------------------
-
-    // Fallback logic if NEXT_PUBLIC_API_URL is missing or broken in .env
-    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    
-    // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
-    const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
-
-    if (!isLogin && password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    // ---------------------------
-
-    // Fallback logic if NEXT_PUBLIC_API_URL is missing or broken in .env
-    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    
-    // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
-    const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
-
-    if (!isLogin && password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    // ---------------------------
-
-    // Fallback logic if NEXT_PUBLIC_API_URL is missing or broken in .env
-    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    
-    // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
-    const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
-
+    const cleanApiUrl = baseApiUrl.replace(/\/+$/, ""); // Remove trailing slashes
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
     const requestUrl = `${cleanApiUrl}${endpoint}`;
 
+    // 3. API Request
     try {
       const response = await fetch(requestUrl, {
         method: "POST",
@@ -85,25 +44,13 @@ function LoginPopup({ onLoginSuccess, onClose }) {
 
       const contentType = response.headers.get("content-type") || "";
 
-      // Catch backend errors safely without crashing with HTML code dumps
       if (!response.ok) {
         if (contentType.includes("application/json")) {
           const errorData = await response.json();
           setError(errorData.message || `Error: Request failed with status ${response.status}`);
         } else {
-          // If the system drops an HTML page (like a 404 or 500 error), catch it elegantly here:
-          console.error(`System dropped a non-JSON code status ${response.status}`);
-          setError(isLogin 
-            ? "Authentication endpoint could not be found. Check backend server configuration." 
-            : "Registration endpoint could not be found. Check backend server configuration."
-          );
+          setError("Server error: Unable to reach the authentication service.");
         }
-        return;
-      }
-
-      // Validating incoming response payload structure
-      if (!contentType.includes("application/json")) {
-        setError("Unexpected data format returned from backend.");
         return;
       }
 
@@ -117,8 +64,8 @@ function LoginPopup({ onLoginSuccess, onClose }) {
         setError(data.message || "Authentication failed.");
       }
     } catch (err) {
-      console.error("Network level authorization error:", err);
-      setError("Server connection timed out. Please ensure your backend is running on port 5000.");
+      console.error("Network level error:", err);
+      setError("Server connection failed. Please ensure your backend is running.");
     }
   };
 
