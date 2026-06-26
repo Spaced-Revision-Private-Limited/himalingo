@@ -80,7 +80,7 @@ jobs:
             docker stop spacedchat 2>/dev/null || true
             docker rm spacedchat 2>/dev/null || true
             docker run -d \
-              --name spacedchat \
+              --name himalingo-backend \
               --network proxy \
               --restart unless-stopped \
               -p 5000:5000 \
