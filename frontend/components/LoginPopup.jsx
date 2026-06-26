@@ -61,6 +61,18 @@ function LoginPopup({ onLoginSuccess, onClose }) {
     // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
     const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
 
+    if (!isLogin && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    // ---------------------------
+
+    // Fallback logic if NEXT_PUBLIC_API_URL is missing or broken in .env
+    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    
+    // Safety check to strip out trailing slashes so your paths never get triple slashes (///)
+    const cleanApiUrl = baseApiUrl.endsWith('/') ? baseApiUrl.slice(0, -1) : baseApiUrl;
+
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
     const requestUrl = `${cleanApiUrl}${endpoint}`;
 
