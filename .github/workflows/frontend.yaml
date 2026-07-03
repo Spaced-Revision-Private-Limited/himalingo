@@ -1,4 +1,16 @@
-build-and-push-frontend:
+name: Build and Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-frontend:
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -8,15 +20,18 @@ build-and-push-frontend:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Lowercase image name
         id: image
         run: echo "image=${REGISTRY}/${IMAGE_NAME,,}-frontend" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -26,7 +41,7 @@ build-and-push-frontend:
           platforms: linux/arm64
           tags: ${{ steps.image.outputs.image }}:latest
 
-    deploy-frontend:
+  deploy-frontend:
     needs: build-and-push-frontend
     runs-on: ubuntu-latest
     steps:
