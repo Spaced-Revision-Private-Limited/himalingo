@@ -92,6 +92,7 @@ jobs:
               -e PINECONE_API_KEY='${{ secrets.PINECONE_API_KEY }}' \
               -e CONFIDENCE_THRESHOLD='${{ secrets.CONFIDENCE_THRESHOLD }}' \
               -e JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}' \
+              -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}'
               -e AWS_REGION='${{ secrets.AWS_REGION }}' \
               -e AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}' \
               -e AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}' \
