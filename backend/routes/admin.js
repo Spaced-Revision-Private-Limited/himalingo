@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import Translation from '../models/Translation.js';
+import User from '../models/User.js';
+import { envConfig } from '../config/env.config.js';
 
 const router = express.Router();
 
@@ -12,19 +14,21 @@ const ADMIN_PASSWORD = "himalingo@2026**";
 
 // Admin auth middleware
 const verifyAdmin = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "No token provided" });
+  }
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ success: false, message: "No token provided" });
-    }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    const decoded = jwt.verify(token, envConfig.JWT_SECRET_KEY);
     if (!decoded.isAdmin) {
-      return res.status(403).json({ success: false, message: "Access denied" });
+      return res.status(403).json({ success: false, message: "Access denied: not an admin account" });
     }
     req.admin = decoded;
     next();
   } catch (err) {
-    return res.status(403).json({ success: false, message: "Invalid token" });
+    // Expired or tampered token — tell the client to log in again
+    console.error("[verifyAdmin] JWT error:", err.message);
+    return res.status(401).json({ success: false, message: "Session expired. Please log in again." });
   }
 };
 
@@ -43,13 +47,14 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       { email: ADMIN_EMAIL, isAdmin: true },
-      process.env.JWT_SECRET_KEY,
+      envConfig.JWT_SECRET_KEY,
       { expiresIn: "8h" }
     );
 
     res.json({ success: true, token });
 
   } catch (err) {
+    console.error("[admin/login] Error:", err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -123,7 +128,17 @@ router.post("/toggle-status/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// Delete item
+// Get all admin members
+router.get("/members", verifyAdmin, async (req, res) => {
+  try {
+    const members = await User.find({}).select('email createdAt').sort({ createdAt: -1 });
+    res.json({ success: true, members });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete item — legacy path kept for compatibility
 router.delete("/delete/:id", verifyAdmin, async (req, res) => {
   try {
     const deletedItem = await Translation.findByIdAndDelete(req.params.id);
@@ -131,6 +146,19 @@ router.delete("/delete/:id", verifyAdmin, async (req, res) => {
       return res.json({ success: true, message: "Item deleted successfully" });
     }
     res.status(404).json({ success: false, message: "Item not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete item — frontend-facing path
+router.delete("/delete-record/:id", verifyAdmin, async (req, res) => {
+  try {
+    const deletedItem = await Translation.findByIdAndDelete(req.params.id);
+    if (deletedItem) {
+      return res.json({ success: true, message: "Record deleted" });
+    }
+    res.status(404).json({ success: false, message: "Record not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

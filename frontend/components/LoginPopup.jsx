@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { setAccessToken } from '../lib/api';
 
 function LoginPopup({ onLoginSuccess, onClose }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -39,6 +40,7 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       const response = await fetch(requestUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -57,7 +59,7 @@ function LoginPopup({ onLoginSuccess, onClose }) {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem("token", data.token);
+        setAccessToken(data.token);
         localStorage.setItem("userEmail", email);
         onLoginSuccess();
       } else {

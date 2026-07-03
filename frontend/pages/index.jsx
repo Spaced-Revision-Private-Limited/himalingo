@@ -20,6 +20,7 @@ import SearchBox from "../components/SearchBox";
 import Suggestions from "../components/Suggestions";
 import LoginPopup from "../components/LoginPopup";
 import { FaCopy, FaVolumeUp, FaCheck, FaBars } from "react-icons/fa"; // Added FaBars for a mobile menu button
+import { apiFetch, restoreSession } from "../lib/api";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -51,12 +52,20 @@ export default function Home() {
     if (typeof window !== "undefined" && window.innerWidth > 768) {
       setSidebarOpen(true);
     }
-    
-    const token = localStorage.getItem("token");
+
+    // Access tokens live in memory only, so they're gone after a page reload.
+    // If we have a saved email, try to silently restore the session using
+    // the httpOnly refresh cookie before deciding the user is logged out.
     const email = localStorage.getItem("userEmail");
-    if (token && email) {
-      dispatch(loginUser({ email }));
-      fetchHistory();
+    if (email) {
+      restoreSession().then((success) => {
+        if (success) {
+          dispatch(loginUser({ email }));
+          fetchHistory();
+        } else {
+          localStorage.removeItem("userEmail");
+        }
+      });
     }
   }, []);
 
@@ -69,14 +78,8 @@ export default function Home() {
   const fetchHistory = async () => {
     if (!apiUrl) return;
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const response = await fetch(`${apiUrl}/api/history?t=${Date.now()}`, {
+      const response = await apiFetch(`/api/history?t=${Date.now()}`, {
         method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
       });
       const contentType = response.headers.get("content-type");
       if (!response.ok || !contentType?.includes("application/json")) return;
@@ -90,10 +93,8 @@ export default function Home() {
   const handleDeleteItem = async (e, chatId) => {
     if (!loggedIn || !apiUrl) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${apiUrl}/api/history/session/${chatId}`, {
+      const res = await apiFetch(`/api/history/session/${chatId}`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) {
@@ -106,10 +107,8 @@ export default function Home() {
   const handleTogglePin = async (e, chatId) => {
     if (!loggedIn || !apiUrl) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${apiUrl}/api/history/session/${chatId}/pin`, {
+      const res = await apiFetch(`/api/history/session/${chatId}/pin`, {
         method: "PATCH",
-        headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) fetchHistory();
@@ -120,10 +119,8 @@ export default function Home() {
     if (!loggedIn || !apiUrl) return;
     if (!window.confirm("Clear all history?")) return;
     try {
-      const token = localStorage.getItem("token");
-      await fetch(`${apiUrl}/api/history`, {
+      await apiFetch(`/api/history`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
       });
       setHistory([]);
       dispatch(resetChat());
@@ -149,7 +146,6 @@ export default function Home() {
     dispatch(addMessage({ role: "ai", content: "Thinking...", typing: true }));
 
     try {
-      const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("text", textFromInput || "");
       formData.append("targetLanguage", resolvedLang);
@@ -159,10 +155,9 @@ export default function Home() {
       if (imageFile) formData.append("image", imageFile);
 
       const endpoint = resolvedMode === "chat" ? "/api/chat" : "/api/translate";
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await apiFetch(endpoint, {
         method: "POST",
         body: formData,
-        headers: { "Authorization": `Bearer ${token}` }
       });
 
       const data = await response.json();
