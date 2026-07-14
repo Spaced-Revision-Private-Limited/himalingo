@@ -1,16 +1,15 @@
-FROM node:20-alpine
-
+FROM node:20
 WORKDIR /app
+ENV PORT=80
+
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci
 
-# Copy your local production build folder and project files
-COPY .next ./.next
-COPY package.json ./package.json
-COPY next.config.js ./next.config.js
-
-EXPOSE 3000
+COPY . .
+RUN npm run build
 
 CMD ["npm", "run", "start"]
 

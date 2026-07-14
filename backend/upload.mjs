@@ -371,6 +371,41 @@ async function syncData() {
     console.log(`${fileName} done.\n`);
   }
 
+  // ── 14. bhutia_core_vocabulary.json ───────────────────────────────────
+  const coreVocabPath = path.join(DATA_DIR, "bhutia_core_vocabulary.json");
+  if (fs.existsSync(coreVocabPath)) {
+    console.log("Processing bhutia_core_vocabulary.json...");
+    const data = JSON.parse(fs.readFileSync(coreVocabPath, "utf-8"));
+    const records = data
+      .filter(e => e.english && e.transliteration)
+      .map(e => ({
+        english:    e.english.trim(),
+        trans:      e.transliteration.trim(),
+        native:     "",
+        searchText: `English: ${e.english.trim()} | Bhutia: ${e.transliteration.trim()} | Category: ${e.category || ""}`,
+      }));
+    total += await uploadRecords(records, "corevocab");
+    console.log("bhutia_core_vocabulary.json done.\n");
+  }
+
+  // ── 15. bhutia_vocabulary_expansion.json ──────────────────────────────
+  const expansionPath = path.join(DATA_DIR, "bhutia_vocabulary_expansion.json");
+  if (fs.existsSync(expansionPath)) {
+    console.log("Processing bhutia_vocabulary_expansion.json...");
+    const data = JSON.parse(fs.readFileSync(expansionPath, "utf-8"));
+    const records = data
+      // Skip placeholder entries that need native speaker review
+      .filter(e => e.english && e.transliteration && !e.transliteration.includes("NEEDS_NATIVE_SPEAKER"))
+      .map(e => ({
+        english:    e.english.trim(),
+        trans:      e.transliteration.trim(),
+        native:     "",
+        searchText: `English: ${e.english.trim()} | Bhutia: ${e.transliteration.trim()} | Category: ${e.category || ""}`,
+      }));
+    total += await uploadRecords(records, "expansion");
+    console.log("bhutia_vocabulary_expansion.json done.\n");
+  }
+
   console.log(`\nAll done! Total Bhutia vectors uploaded: ${total}`);
   console.log("Now run: node server.js");
 }
