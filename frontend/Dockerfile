@@ -20,7 +20,7 @@ RUN npm install --production
 
 # Copy built artifacts from the builder stage
 COPY --from=0 /app/.next ./.next
-COPY --from=0 /app/public ./public
+COPY --from=0 /app/public ./public || true
 COPY package.json ./package.json
 COPY next.config.js ./next.config.js
 
