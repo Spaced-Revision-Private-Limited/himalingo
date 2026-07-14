@@ -30,10 +30,9 @@ function LoginPopup({ onLoginSuccess, onClose }) {
     }
 
     // 2. Prepare API URL
-    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const cleanApiUrl = baseApiUrl.replace(/\/+$/, ""); // Remove trailing slashes
+    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || "";
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
-    const requestUrl = `${cleanApiUrl}${endpoint}`;
+    const requestUrl = `${baseApiUrl}${endpoint}`;
 
     // 3. API Request
     try {

@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/api`
-    : "http://localhost:5000/api";
+    ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")}/api`
+    : "/api";
 
 export default function AdminDashboard() {
     const [currentView, setCurrentView] = useState("dashboard");

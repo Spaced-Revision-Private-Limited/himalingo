@@ -22,8 +22,6 @@ import LoginPopup from "../components/LoginPopup";
 import { FaCopy, FaVolumeUp, FaCheck, FaBars } from "react-icons/fa";
 import { apiFetch, restoreSession } from "../lib/api";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 export default function Home() {
   const dispatch = useDispatch();
 
@@ -69,7 +67,6 @@ export default function Home() {
   }, [messages]);
 
   const fetchHistory = async () => {
-    if (!apiUrl) return;
     try {
       const response = await apiFetch(`/api/history?t=${Date.now()}`, {
         method: "GET",
@@ -84,7 +81,7 @@ export default function Home() {
   };
 
   const handleDeleteItem = async (e, chatId) => {
-    if (!loggedIn || !apiUrl) return;
+    if (!loggedIn) return;
     try {
       const res = await apiFetch(`/api/history/session/${chatId}`, {
         method: "DELETE",
@@ -98,7 +95,7 @@ export default function Home() {
   };
 
   const handleTogglePin = async (e, chatId) => {
-    if (!loggedIn || !apiUrl) return;
+    if (!loggedIn) return;
     try {
       const res = await apiFetch(`/api/history/session/${chatId}/pin`, {
         method: "PATCH",
@@ -109,7 +106,7 @@ export default function Home() {
   };
 
   const handleClearHistory = async () => {
-    if (!loggedIn || !apiUrl) return;
+    if (!loggedIn) return;
     if (!window.confirm("Clear all history?")) return;
     try {
       await apiFetch(`/api/history`, {

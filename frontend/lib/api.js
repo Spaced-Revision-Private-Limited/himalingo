@@ -1,4 +1,5 @@
 let accessToken = null;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || "";
 
 export const setAccessToken = (token) => { accessToken = token; };
 export const getAccessToken = () => accessToken;
@@ -13,14 +14,14 @@ export async function apiFetch(url, options = {}) {
     return headers;
   };
 
-  let res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
+  let res = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
     headers: buildHeaders(accessToken),
     credentials: "include",
   });
 
   if (res.status === 401 || res.status === 403) {
-    const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`, {
+    const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
       method: "POST",
       credentials: "include",
     });
@@ -29,7 +30,7 @@ export async function apiFetch(url, options = {}) {
       const data = await refreshRes.json();
       setAccessToken(data.token);
 
-      res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
+      res = await fetch(`${API_BASE_URL}${url}`, {
         ...options,
         headers: buildHeaders(data.token),
         credentials: "include",
@@ -47,7 +48,7 @@ export async function apiFetch(url, options = {}) {
 // using the httpOnly refresh cookie (since accessToken resets on page reload)
 export async function restoreSession() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`, {
+    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
       method: "POST",
       credentials: "include",
     });
