@@ -25,7 +25,17 @@ UserSchema.methods.generateJwtToken = function () {
     { id: this._id.toString() },
     envConfig.JWT_SECRET_KEY,
     {
-      expiresIn: "1d"
+      expiresIn: "7d"
+    }
+  )
+}
+
+UserSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    { id: this._id.toString() },
+    envConfig.JWT_REFRESH_SECRET,
+    {
+      expiresIn: "7d"
     }
   )
 }

@@ -1,18 +1,18 @@
 
 import React from 'react';
 
-function Sidebar({ 
-  isOpen, 
-  toggleSidebar, 
-  loggedIn, 
-  userEmail, 
-  onNewChat, 
-  history, 
-  onSelectItem, 
+function Sidebar({
+  isOpen,
+  toggleSidebar,
+  loggedIn,
+  userEmail,
+  onNewChat,
+  history,
+  onSelectItem,
   setLoginOpen,
   onClearHistory,
   onDeleteItem,
-  onTogglePin
+  onTogglePin,
 }) {
 
   const handleSignOut = () => {
@@ -340,6 +340,18 @@ function Sidebar({
           cursor: pointer;
           padding: 0;
           font-weight: 600;
+        }
+
+        .session-stat {
+          margin: 0 12px 8px 12px;
+          padding: 8px 12px;
+          background: linear-gradient(135deg, #faf5ff, #f0f9ff);
+          border: 1px solid #e9d5ff;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #7c3aed;
+          text-align: center;
         }
 
         .sidebar-history::-webkit-scrollbar { width: 4px; }

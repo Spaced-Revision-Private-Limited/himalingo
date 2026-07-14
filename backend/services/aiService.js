@@ -5,9 +5,9 @@
 import fetch from "node-fetch";
 
 const MODELS = [
-  "gpt-4",           // better for low-resource languages
-  "gpt-4o-mini",     // fast, cheap, reliable
-  "gpt-3.5-turbo",   // fallback
+  "gpt-4o-mini",     // fast, cheap — sufficient when RAG context is provided
+  "gpt-4o",          // stronger fallback for difficult inputs
+  "gpt-3.5-turbo",   // last resort
 ];
 
 export async function askAI(messages, temperature = 0.05) {

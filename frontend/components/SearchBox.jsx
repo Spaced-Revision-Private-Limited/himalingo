@@ -100,15 +100,20 @@ function SearchBox({ onFocus, onSubmit, mode, effectiveMode = mode, isLoggedIn }
         .search-container { width: 100%; max-width: 768px; margin: 0 auto; padding: 0 15px; }
         .file-preview-badge { align-self: flex-start; background: #f4f4f4; padding: 4px 12px; border-radius: 10px; font-size: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         .search-box { display: flex; align-items: center; background: #fff; border: 1px solid #e5e5e5; border-radius: 24px; padding: 8px 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-        input { flex: 1; border: none; outline: none; padding: 8px; font-size: 16px; }
-        .icon-btn { background: none; border: none; cursor: pointer; font-size: 20px; color: #666; margin-right: 8px; }
-        .send-btn { background: #000; color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .mic-btn { background: none; border: none; color: #666; cursor: pointer; }
+        input { flex: 1; min-width: 0; border: none; outline: none; padding: 8px; font-size: 16px; }
+        .icon-btn { flex-shrink: 0; background: none; border: none; cursor: pointer; font-size: 20px; color: #666; margin-right: 8px; }
+        .action-buttons { flex-shrink: 0; display: flex; align-items: center; margin-left: 8px; }
+        .send-btn { flex-shrink: 0; background: #000; color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .mic-btn { flex-shrink: 0; background: none; border: none; color: #666; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0; }
         .remove-btn { border: none; background: none; cursor: pointer; font-weight: bold; color: red; }
+
+        @media (max-width: 480px) {
+          .search-box { padding: 8px 12px; }
+          input { font-size: 15px; padding: 6px; }
+        }
       `}</style>
     </div>
   );
 }
 
 export default SearchBox;
-

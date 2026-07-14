@@ -19,7 +19,8 @@ import Sidebar from "../components/Sidebar";
 import SearchBox from "../components/SearchBox";
 import Suggestions from "../components/Suggestions";
 import LoginPopup from "../components/LoginPopup";
-import { FaCopy, FaVolumeUp, FaCheck, FaBars } from "react-icons/fa"; // Added FaBars for a mobile menu button
+import { FaCopy, FaVolumeUp, FaCheck, FaBars } from "react-icons/fa";
+import { apiFetch, restoreSession } from "../lib/api";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -35,28 +36,29 @@ export default function Home() {
   const userEmail      = useSelector(s => s.app.userEmail);
 
   const [mounted, setMounted]         = useState(false);
-  
-  // FIX 1: Ensure sidebar defaults to CLOSED on mobile view when page mounts
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const [loginOpen, setLoginOpen]     = useState(false);
-  const [history, setHistory]         = useState([]);
-  const [copiedText, setCopiedText]   = useState(null);
+  const [loginOpen, setLoginOpen]             = useState(false);
+  const [history, setHistory]                 = useState([]);
+  const [copiedText, setCopiedText]           = useState(null);
 
   const scrollRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
-    // Safely detect desktop setting after mounting on client side
     if (typeof window !== "undefined" && window.innerWidth > 768) {
       setSidebarOpen(true);
     }
-    
-    const token = localStorage.getItem("token");
+
     const email = localStorage.getItem("userEmail");
-    if (token && email) {
-      dispatch(loginUser({ email }));
-      fetchHistory();
+    if (email) {
+      restoreSession().then((success) => {
+        if (success) {
+          dispatch(loginUser({ email }));
+          fetchHistory();
+        } else {
+          localStorage.removeItem("userEmail");
+        }
+      });
     }
   }, []);
 
@@ -69,14 +71,8 @@ export default function Home() {
   const fetchHistory = async () => {
     if (!apiUrl) return;
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const response = await fetch(`${apiUrl}/api/history?t=${Date.now()}`, {
+      const response = await apiFetch(`/api/history?t=${Date.now()}`, {
         method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
       });
       const contentType = response.headers.get("content-type");
       if (!response.ok || !contentType?.includes("application/json")) return;
@@ -90,10 +86,8 @@ export default function Home() {
   const handleDeleteItem = async (e, chatId) => {
     if (!loggedIn || !apiUrl) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${apiUrl}/api/history/session/${chatId}`, {
+      const res = await apiFetch(`/api/history/session/${chatId}`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) {
@@ -106,10 +100,8 @@ export default function Home() {
   const handleTogglePin = async (e, chatId) => {
     if (!loggedIn || !apiUrl) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${apiUrl}/api/history/session/${chatId}/pin`, {
+      const res = await apiFetch(`/api/history/session/${chatId}/pin`, {
         method: "PATCH",
-        headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) fetchHistory();
@@ -120,10 +112,8 @@ export default function Home() {
     if (!loggedIn || !apiUrl) return;
     if (!window.confirm("Clear all history?")) return;
     try {
-      const token = localStorage.getItem("token");
-      await fetch(`${apiUrl}/api/history`, {
+      await apiFetch(`/api/history`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
       });
       setHistory([]);
       dispatch(resetChat());
@@ -134,7 +124,6 @@ export default function Home() {
     if (!textFromInput && !imageFile) return;
     if (!loggedIn) { setLoginOpen(true); return; }
 
-    // Auto-close sidebar on mobile once a search executes so user can see chat window
     if (window.innerWidth <= 768) setSidebarOpen(false);
 
     const resolvedLang = selectedLangFromSuggestion || targetLanguage || "Bhutia";
@@ -149,7 +138,6 @@ export default function Home() {
     dispatch(addMessage({ role: "ai", content: "Thinking...", typing: true }));
 
     try {
-      const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("text", textFromInput || "");
       formData.append("targetLanguage", resolvedLang);
@@ -158,11 +146,9 @@ export default function Home() {
       formData.append("history", JSON.stringify(messages.filter(m => !m.typing)));
       if (imageFile) formData.append("image", imageFile);
 
-      const endpoint = resolvedMode === "chat" ? "/api/chat" : "/api/translate";
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await apiFetch("/api/translate", {
         method: "POST",
         body: formData,
-        headers: { "Authorization": `Bearer ${token}` }
       });
 
       const data = await response.json();
@@ -178,7 +164,9 @@ export default function Home() {
         return;
       }
 
-      const aiResponse = resolvedMode === "chat" ? data.response : data.translated;
+      const aiResponse = data.notFound
+        ? data.message
+        : (data.translated || data.response || "No response.");
       dispatch(updateLastMessage({ role: "ai", content: aiResponse || "No response.", typing: false }));
       fetchHistory();
 
@@ -217,7 +205,6 @@ export default function Home() {
     <div className="container">
       <Head><title>Himalingo</title></Head>
 
-      {/* Mobile Drawer Overlay Background */}
       {sidebarOpen && (
         <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
       )}
@@ -237,7 +224,7 @@ export default function Home() {
           dispatch(setIsChatting(true));
           dispatch(setCurrentChatId(item.chatId));
           dispatch(setMode(item.mode || "chat"));
-          if (window.innerWidth <= 768) setSidebarOpen(false); // Close drawer after selection
+          if (window.innerWidth <= 768) setSidebarOpen(false);
           try {
             const raw = item.translatedText.trim();
             const parsed = (raw.startsWith("[") || raw.startsWith("{"))
@@ -250,7 +237,6 @@ export default function Home() {
         }}
       />
 
-      {/* FIX 2: Added a floating trigger menu button specifically for mobile screens */}
       <button className="mobile-menu-trigger" onClick={() => setSidebarOpen(!sidebarOpen)}>
         <FaBars />
       </button>
@@ -329,6 +315,7 @@ export default function Home() {
             onClose={() => setLoginOpen(false)}
           />
         )}
+
       </main>
 
       <style jsx>{`
@@ -465,7 +452,6 @@ export default function Home() {
           50% { transform: translateY(-5px); }
         }
 
-        /* FIX 3: Balanced Responsive Rules for Mobile Devices */
         @media (max-width: 768px) {
           .main { 
             margin-left: 0 !important; 
@@ -494,7 +480,7 @@ export default function Home() {
             width: 100vw;
             height: 100vh;
             background: rgba(0, 0, 0, 0.4);
-            z-index: 90; /* Right below the sidebar */
+            z-index: 90;
           }
           .chat-content { padding: 80px 12px 160px 12px; }
           .landing-content { padding-top: 100px; }
@@ -507,6 +493,8 @@ export default function Home() {
           .u-bubble { max-width: 88%; font-size: 14px; }
           .chat-content { padding: 80px 8px 150px 8px; }
         }
+
+        @media (max-width: 480px) {
       `}</style>
     </div>
   );

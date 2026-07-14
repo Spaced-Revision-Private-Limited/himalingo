@@ -97,56 +97,92 @@ router.post("/", upload.single("image"), async (req, res, next) => {
     } else {
       // 4. Prompt Builder
       const buildPrompt = (strong = false) => {
-        const contextSection = ragContext
-          ? `VERIFIED BHUTIA DICTIONARY:\n${ragContext}`
-          : `No dictionary match found. Use your knowledge of Sikkimese Bhutia.`;
+        if (!ragContext) {
+          return null; // signal: no context, don't call LLM
+        }
 
-        const strictness = strong ? `FINAL WARNING: Output ONLY Bhutia Roman script.` : "";
+        const strictness = strong ? `CRITICAL: Your previous answer was wrong. Output ONLY Bhutia Roman.` : "";
 
-        return `You are a Bhutia (Sikkimese) translator. 
-        ${contextSection}
-        RULES:
-        1. Output ONLY Bhutia Roman transliteration.
-        2. No English, no Tibetan script, no explanations.
-        ${strictness}
-        Input to translate:`;
+        return `You are a Bhutia (Sikkimese) language translator. Bhutia is spoken in Sikkim, India.
+
+VERIFIED BHUTIA DICTIONARY (use these EXACTLY):
+${ragContext}
+
+STRICT RULES:
+1. Output ONLY the Bhutia Roman transliteration — no explanations, no English, no Tibetan script.
+2. Match the dictionary entry as closely as possible to the input.
+3. If multiple words are in the input, combine their dictionary translations.
+4. Do NOT invent words that are not in the dictionary.
+${strictness}
+Examples of correct output format:
+- Input: "hello" → Output: Kuzu Zangpo La
+- Input: "water" → Output: Chu
+- Input: "thank you" → Output: Tashi Delek
+
+Now translate the following input:`;
       };
 
-      // 5. First attempt
-      let result = await askAI([
-        { role: "system", content: buildPrompt(false) },
-        { role: "user",   content: cleanQuery },
-      ], 0.0);
+      const systemPrompt = buildPrompt(false);
 
-      cleaned = cleanOutput(result);
-      console.log(`[Translate] First attempt: "${cleaned}"`);
-
-      // 6. Retry logic if output is bad
-      if (isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) {
-        console.log(`[Translate] Bad output detected — retrying...`);
-        result = await askAI([
-          { role: "system",    content: buildPrompt(true) },
-          { role: "user",      content: cleanQuery },
-          { role: "assistant", content: cleaned },
-          { role: "user",      content: `That was English. Give me ONLY Bhutia.` },
+      // 5. No RAG context — don't hallucinate, return honest not-found
+      if (!systemPrompt) {
+        console.log(`[Translate] No dictionary context found — returning not-found`);
+        cleaned = "__NOT_FOUND__";
+      } else {
+        // 5b. First LLM attempt
+        let result = await askAI([
+          { role: "system", content: systemPrompt },
+          { role: "user",   content: cleanQuery },
         ], 0.0);
-        cleaned = cleanOutput(result);
-      }
 
-      // 7. Final extraction from RAG if AI still fails
-      if ((isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) && ragContext) {
-        const lines = ragContext.split("\n");
-        for (const line of lines) {
-          const match = line.match(/[Tt]ransliteration[:\s]+([A-Za-z\s']+)/);
-          if (match && match[1]) {
-            cleaned = match[1].trim();
-            break;
+        cleaned = cleanOutput(result);
+        console.log(`[Translate] First attempt: "${cleaned}"`);
+
+        // 6. Retry if output echoes English back
+        if (isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) {
+          console.log(`[Translate] Bad output detected — retrying...`);
+          result = await askAI([
+            { role: "system",    content: buildPrompt(true) },
+            { role: "user",      content: cleanQuery },
+            { role: "assistant", content: cleaned },
+            { role: "user",      content: `That was English. Give me ONLY the Bhutia Roman transliteration.` },
+          ], 0.0);
+          cleaned = cleanOutput(result);
+        }
+
+        // 7. Final extraction from RAG context if AI still fails
+        if ((isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) && ragContext) {
+          const lines = ragContext.split("\n");
+          for (const line of lines) {
+            // match: Dictionary entry: "X" translates to Bhutia word "Y"
+            const dMatch = line.match(/translates to Bhutia word "([^"]+)"/i);
+            if (dMatch && dMatch[1]) {
+              cleaned = dMatch[1].trim();
+              break;
+            }
+            // fallback for older format with transliteration label
+            const tMatch = line.match(/[Tt]ransliteration[:\s]+([A-Za-z\s'\-]+)/);
+            if (tMatch && tMatch[1]) {
+              cleaned = tMatch[1].trim();
+              break;
+            }
           }
         }
       }
     }
 
     console.log(`[Translate] Final Result: "${cleaned}"`);
+
+    // Return a user-friendly not-found response
+    if (cleaned === "__NOT_FOUND__") {
+      return res.json({
+        success: true,
+        translated: null,
+        notFound: true,
+        message: `Sorry, "${text}" was not found in the Bhutia dictionary. Try a simpler word or phrase.`,
+        original: text,
+      });
+    }
 
     // ── ✅ NEW DATABASE AUTO-SAVE WORK USING USERID ──
     const activeUserId = req.user ? req.user.id || req.user._id : null;
