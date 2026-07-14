@@ -49,58 +49,15 @@ function normalizeEnglishForExact(eng) {
 
 function extractKeywords(cleanedQuery) {
   const stopWords = new Set([
-    // common
-    "the",
-    "is",
-    "are",
-    "a",
-    "an",
-    "and",
-    "or",
-    "to",
-    "of",
-    "in",
-    "on",
-    "for",
-    "with",
-    "without",
-    "that",
-    "this",
-    "it",
-    "as",
-    "at",
-    // pronouns/determiners
-    "i",
-    "you",
-    "he",
-    "she",
-    "we",
-    "they",
-    "them",
-    "your",
-    "my",
-    "our",
-    "their",
-    // question words
-    "how",
-    "what",
-    "why",
-    "where",
-    "when",
-    "who",
-    "which",
-    // common translation helpers
-    "please",
-    "thanks",
-    "thank",
-    "hello",
-    "good",
-    "morning",
-    "evening",
-    "night",
-    // duplicates
-    "am",
-    "be"
+    // articles / conjunctions / prepositions
+    "the", "is", "are", "a", "an", "and", "or", "to", "of", "in", "on",
+    "for", "with", "without", "that", "this", "it", "as", "at", "am", "be",
+    // pronouns / determiners
+    "i", "you", "he", "she", "we", "they", "them", "your", "my", "our", "their",
+    // question words — keep searchable in keyword fallback
+    "how", "what", "why", "where", "when", "who", "which"
+    // NOTE: "hello", "good", "morning", "evening", "night", "please", "thank"
+    // are intentionally NOT stop-words — they are common translation targets
   ]);
 
   return cleanedQuery
@@ -231,6 +188,7 @@ export async function getRagContext(query, language) {
 
     return {
       context: uniqueContext.join("\n"),
+      exactMatch: exactMatch || null,
     };
   } catch (error) {
     console.error("[RAG] Error fetching context:", error);

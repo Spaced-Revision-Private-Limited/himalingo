@@ -123,14 +123,16 @@ async function syncData() {
   if (fs.existsSync(numbersPath)) {
     console.log("Processing numbers_31_40.json...");
     const data = JSON.parse(fs.readFileSync(numbersPath, "utf-8"));
+    // File is { "numbers": [...] }, not a plain array
+    const entries = Array.isArray(data) ? data : (data.numbers || []);
 
-    const records = data
+    const records = entries
       .filter(e => e.english && (e.transliteration_bhutia || e.bhutia))
       .map(e => ({
         english:    String(e.english).trim(),
-        trans:      (e.transliteration_bhutia || "").trim(),
+        trans:      (e.transliteration_bhutia || e.bhutia || "").trim(),
         native:     (e.bhutia || "").trim(),
-        searchText: `English: ${String(e.english).trim()} | Bhutia transliteration: ${(e.transliteration_bhutia || "").trim()}`,
+        searchText: `English: ${String(e.english).trim()} | Bhutia: ${(e.transliteration_bhutia || e.bhutia || "").trim()}`,
       }));
 
     total += await uploadRecords(records, "nums");
@@ -236,21 +238,15 @@ async function syncData() {
   if (fs.existsSync(mcqPath)) {
     console.log("Processing bhutia_mcq_bank.json...");
     const data = JSON.parse(fs.readFileSync(mcqPath, "utf-8"));
+    // Data format is { english, transliteration } — not MCQ format
     const records = data
-      .filter(e => e.question && e.answer !== undefined)
-      .map(e => {
-        const q   = e.question.replace(/<[^>]*>/g, "").trim();
-        const opts = [e.option1, e.option2, e.option3, e.option4]
-          .filter(Boolean)
-          .map(o => o.replace(/<[^>]*>/g, "").trim());
-        const ans = opts[e.answer] || "";
-        return {
-          english:    q,
-          trans:      ans,
-          native:     opts.join(" | "),
-          searchText: `Question: ${q} | Options: ${opts.join(" | ")} | Answer: ${ans}`,
-        };
-      });
+      .filter(e => e.english && e.transliteration)
+      .map(e => ({
+        english:    e.english.trim(),
+        trans:      e.transliteration.trim(),
+        native:     "",
+        searchText: `English: ${e.english.trim()} | Bhutia: ${e.transliteration.trim()}`,
+      }));
     total += await uploadRecords(records, "mcq");
     console.log("bhutia_mcq_bank.json done.\n");
   }
@@ -277,19 +273,15 @@ async function syncData() {
   if (fs.existsSync(fmcqPath)) {
     console.log("Processing final_bhutia_mcqs.json...");
     const data = JSON.parse(fs.readFileSync(fmcqPath, "utf-8"));
+    // Data format is { english, transliteration } — not MCQ format
     const records = data
-      .filter(e => e.question && e.answer !== undefined && Array.isArray(e.options))
-      .map(e => {
-        const q   = e.question.trim();
-        const opts = e.options.map(o => String(o).trim());
-        const ans = opts[e.answer] || "";
-        return {
-          english:    q,
-          trans:      ans,
-          native:     opts.join(" | "),
-          searchText: `Question: ${q} | Options: ${opts.join(" | ")} | Answer: ${ans}`,
-        };
-      });
+      .filter(e => e.english && e.transliteration)
+      .map(e => ({
+        english:    e.english.trim(),
+        trans:      e.transliteration.trim(),
+        native:     "",
+        searchText: `English: ${e.english.trim()} | Bhutia: ${e.transliteration.trim()}`,
+      }));
     total += await uploadRecords(records, "fmcq");
     console.log("final_bhutia_mcqs.json done.\n");
   }
@@ -400,6 +392,41 @@ async function syncData() {
 
     total += await uploadRecords(records, "tmp");
     console.log("temporary_fixed.json done.\n");
+  }
+
+  // ── 14. bhutia_core_vocabulary.json ───────────────────────────────────
+  const coreVocabPath = path.join(DATA_DIR, "bhutia_core_vocabulary.json");
+  if (fs.existsSync(coreVocabPath)) {
+    console.log("Processing bhutia_core_vocabulary.json...");
+    const data = JSON.parse(fs.readFileSync(coreVocabPath, "utf-8"));
+    const records = data
+      .filter(e => e.english && e.transliteration)
+      .map(e => ({
+        english:    e.english.trim(),
+        trans:      e.transliteration.trim(),
+        native:     "",
+        searchText: `English: ${e.english.trim()} | Bhutia: ${e.transliteration.trim()} | Category: ${e.category || ""}`,
+      }));
+    total += await uploadRecords(records, "corevocab");
+    console.log("bhutia_core_vocabulary.json done.\n");
+  }
+
+  // ── 15. bhutia_vocabulary_expansion.json ──────────────────────────────
+  const expansionPath = path.join(DATA_DIR, "bhutia_vocabulary_expansion.json");
+  if (fs.existsSync(expansionPath)) {
+    console.log("Processing bhutia_vocabulary_expansion.json...");
+    const data = JSON.parse(fs.readFileSync(expansionPath, "utf-8"));
+    const records = data
+      // Skip placeholder entries that need native speaker review
+      .filter(e => e.english && e.transliteration && !e.transliteration.includes("NEEDS_NATIVE_SPEAKER"))
+      .map(e => ({
+        english:    e.english.trim(),
+        trans:      e.transliteration.trim(),
+        native:     "",
+        searchText: `English: ${e.english.trim()} | Bhutia: ${e.transliteration.trim()} | Category: ${e.category || ""}`,
+      }));
+    total += await uploadRecords(records, "expansion");
+    console.log("bhutia_vocabulary_expansion.json done.\n");
   }
 
   console.log(`\nAll done! Total Bhutia vectors uploaded: ${total}`);

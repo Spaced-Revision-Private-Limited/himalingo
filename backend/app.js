@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.js";
 import translateRoutes from "./routes/translate.js";
 import historyRoutes from "./routes/history.js";
 import adminRoutes from "./routes/admin.js";
+import quizRoutes from "./routes/quiz.js";
 import { auth } from "./middlewares/auth.middleware.js";
 
 const app = express();
@@ -22,6 +23,7 @@ app.use(cookieParser()); // ADD THIS — must come before routes that use req.co
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/quiz", quizRoutes);         // public — no auth required
 app.use("/api/history", auth, historyRoutes);
 app.use("/api/translate", auth, translateRoutes);
 

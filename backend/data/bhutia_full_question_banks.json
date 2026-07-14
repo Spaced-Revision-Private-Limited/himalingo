@@ -1,5 +1,5 @@
 [
-  { "backend/modelsenglish": "1", "transliteration": "Chik", "language": "Bhutia", "category": "numbers" },
+  { "english": "1", "transliteration": "Chik", "language": "Bhutia", "category": "numbers" },
   { "english": "2", "transliteration": "Nyik", "language": "bhutia", "category": "numbers" },
   { "english": "3", "transliteration": "Sum", "language": "bhutia", "category": "numbers" },
   { "english": "Hello", "transliteration": "Kuzu Zangpo", "language": "bhutia", "category": "greetings" },
