@@ -11,8 +11,6 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-CMD ["npm", "run", "start"]
-
 FROM node:20-alpine
 
 WORKDIR /app
@@ -20,8 +18,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --production
 
-# Copy your local production build folder and project files
-COPY .next ./.next
+# Copy built artifacts from the builder stage
+COPY --from=0 /app/.next ./.next
+COPY --from=0 /app/public ./public
 COPY package.json ./package.json
 COPY next.config.js ./next.config.js
 
