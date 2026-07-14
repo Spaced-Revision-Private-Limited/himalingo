@@ -1,15 +1,12 @@
 FROM node:20-alpine
-
 WORKDIR /app
-
 ENV PORT=80
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci
 
-COPY .next ./.next
-COPY next.config.js ./next.config.js
+COPY . .
+RUN npm run build
 
 EXPOSE 80
-
 CMD ["npm", "run", "start"]
