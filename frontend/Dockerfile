@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 
 # ---- Runner ----
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /app
 ENV PORT=80
 ENV NODE_ENV=production
