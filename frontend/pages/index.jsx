@@ -191,8 +191,27 @@ export default function Home() {
     });
   };
 
-  const handleNewChat = () => { 
-    dispatch(resetChat()); 
+  const handleNewChat = async () => {
+    const nextChatId = `chat_${Date.now()}`;
+    dispatch(resetChat());
+    dispatch(setCurrentChatId(nextChatId));
+
+    if (loggedIn) {
+      try {
+        await apiFetch("/api/history/session", {
+          method: "POST",
+          body: JSON.stringify({
+            chatId: nextChatId,
+            title: "New chat",
+            mode: mode || "chat",
+          }),
+        });
+        fetchHistory();
+      } catch (err) {
+        console.error("New chat save failed", err);
+      }
+    }
+
     if (window.innerWidth <= 768) setSidebarOpen(false);
   };
 

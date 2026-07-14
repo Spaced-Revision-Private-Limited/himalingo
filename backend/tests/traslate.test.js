@@ -1,5 +1,6 @@
 // backend/tests/translate.test.js
 import { describe, it, expect } from "vitest";
+import { buildDictionaryTranslation } from "../routes/translate.js";
 
 // ── Helper functions copied from translate.js ─────────────────────────────
 // In future: export these from translate.js and import here
@@ -78,6 +79,27 @@ describe("hasEnglish()", () => {
 });
 
 // ── cleanOutput tests ─────────────────────────────────────────────────────
+describe("buildDictionaryTranslation()", () => {
+  it("translates multi-word phrases using dictionary entries", () => {
+    const entries = [
+      { english: "thank", bhutia: "Tashi" },
+      { english: "you", bhutia: "Khyu" },
+    ];
+
+    expect(buildDictionaryTranslation("thank you", entries)).toBe("Tashi Khyu");
+  });
+
+  it("falls back to phrase matches when the full phrase exists", () => {
+    const entries = [
+      { english: "good morning", bhutia: "Kuzu Zangpo" },
+      { english: "good", bhutia: "Kuzu" },
+      { english: "morning", bhutia: "Zangpo" },
+    ];
+
+    expect(buildDictionaryTranslation("good morning", entries)).toBe("Kuzu Zangpo");
+  });
+});
+
 describe("cleanOutput()", () => {
   it("keeps only first line", () => {
     expect(cleanOutput("Kuzu Zangpo\nextra line")).toBe("Kuzu Zangpo");

@@ -3,6 +3,33 @@ import History from "../models/History.js";
 
 const router = express.Router();
 
+// Create a new empty chat session for the logged-in user
+router.post("/session", async (req, res) => {
+  try {
+    const activeUserId = req.user ? req.user.id || req.user._id : null;
+    if (!activeUserId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const { chatId, title, mode } = req.body || {};
+    if (!chatId) return res.status(400).json({ success: false, message: "chatId is required" });
+
+    const entry = await History.findOneAndUpdate(
+      { chatId, userId: activeUserId },
+      {
+        userId: activeUserId,
+        originalText: title || "New chat",
+        translatedText: JSON.stringify([]),
+        mode: mode || "chat",
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({ success: true, history: entry });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Get all history for the logged-in user
 router.get("/", async (req, res) => {
   try {

@@ -49,6 +49,79 @@ function cleanOutput(text) {
     .trim();
 }
 
+function normalizePhrase(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function buildDictionaryTranslation(query, entries = []) {
+  const normalizedQuery = normalizePhrase(query);
+  if (!normalizedQuery) return "";
+
+  const normalizedEntries = (entries || [])
+    .map(entry => ({
+      english: normalizePhrase(entry.english),
+      bhutia: String(entry.bhutia || "").trim(),
+    }))
+    .filter(entry => entry.english && entry.bhutia);
+
+  if (normalizedEntries.length === 0) return "";
+
+  const exactPhrase = normalizedEntries.find(entry => entry.english === normalizedQuery);
+  if (exactPhrase) return exactPhrase.bhutia;
+
+  const queryTokens = normalizedQuery.split(" ");
+  const translatedTokens = [];
+  let index = 0;
+
+  while (index < queryTokens.length) {
+    let matchedEntry = null;
+    let matchedLength = 0;
+
+    for (let length = Math.min(4, queryTokens.length - index); length >= 1; length--) {
+      const phrase = queryTokens.slice(index, index + length).join(" ");
+      const candidate = normalizedEntries.find(entry => entry.english === phrase);
+      if (candidate) {
+        matchedEntry = candidate;
+        matchedLength = length;
+        break;
+      }
+    }
+
+    if (matchedEntry) {
+      translatedTokens.push(matchedEntry.bhutia);
+      index += matchedLength;
+    } else {
+      const singleToken = queryTokens[index];
+      const singleEntry = normalizedEntries.find(entry => entry.english === singleToken);
+      if (singleEntry) {
+        translatedTokens.push(singleEntry.bhutia);
+      }
+      index += 1;
+    }
+  }
+
+  return translatedTokens.join(" ").trim();
+}
+
+export function parseDictionaryEntriesFromContext(ragContext) {
+  if (!ragContext) return [];
+
+  return ragContext
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const match = line.match(/Dictionary entry:\s+"(.+?)"\s+translates to Bhutia word\s+"(.+?)"/i);
+      if (!match) return null;
+      return { english: match[1], bhutia: match[2] };
+    })
+    .filter(Boolean);
+}
+
 // ── Route ─────────────────────────────────────────────────────────────────
 
 // ⚠️ NOTE: Make sure your auth/protect middleware is added here so req.user exists!
@@ -88,6 +161,7 @@ router.post("/", upload.single("image"), async (req, res, next) => {
     const ragResult  = await getRagContext(cleanQuery, "Bhutia");
     const ragContext = ragResult && ragResult.context ? ragResult.context : null;
     const exactMatch = ragResult && ragResult.exactMatch ? ragResult.exactMatch : null;
+    const dictionaryEntries = parseDictionaryEntriesFromContext(ragContext);
 
     // 3. Exact dictionary match check
     let cleaned = "";
@@ -95,15 +169,20 @@ router.post("/", upload.single("image"), async (req, res, next) => {
       console.log(`[Translate] Exact match: "${exactMatch.bhutia}"`);
       cleaned = exactMatch.bhutia;
     } else {
-      // 4. Prompt Builder
-      const buildPrompt = (strong = false) => {
-        if (!ragContext) {
-          return null; // signal: no context, don't call LLM
-        }
+      const dictionaryFallback = buildDictionaryTranslation(cleanQuery, dictionaryEntries);
+      if (dictionaryFallback) {
+        console.log(`[Translate] Dictionary fallback: "${dictionaryFallback}"`);
+        cleaned = dictionaryFallback;
+      } else {
+        // 4. Prompt Builder
+        const buildPrompt = (strong = false) => {
+          if (!ragContext) {
+            return null; // signal: no context, don't call LLM
+          }
 
-        const strictness = strong ? `CRITICAL: Your previous answer was wrong. Output ONLY Bhutia Roman.` : "";
+          const strictness = strong ? `CRITICAL: Your previous answer was wrong. Output ONLY Bhutia Roman.` : "";
 
-        return `You are a Bhutia (Sikkimese) language translator. Bhutia is spoken in Sikkim, India.
+          return `You are a Bhutia (Sikkimese) language translator. Bhutia is spoken in Sikkim, India.
 
 VERIFIED BHUTIA DICTIONARY (use these EXACTLY):
 ${ragContext}
@@ -115,56 +194,54 @@ STRICT RULES:
 4. Do NOT invent words that are not in the dictionary.
 ${strictness}
 Examples of correct output format:
-- Input: "hello" → Output: Kuzu Zangpo La
 - Input: "water" → Output: Chu
-- Input: "thank you" → Output: Tashi Delek
-
 Now translate the following input:`;
-      };
+        };
 
-      const systemPrompt = buildPrompt(false);
+        const systemPrompt = buildPrompt(false);
 
-      // 5. No RAG context — don't hallucinate, return honest not-found
-      if (!systemPrompt) {
-        console.log(`[Translate] No dictionary context found — returning not-found`);
-        cleaned = "__NOT_FOUND__";
-      } else {
-        // 5b. First LLM attempt
-        let result = await askAI([
-          { role: "system", content: systemPrompt },
-          { role: "user",   content: cleanQuery },
-        ], 0.0);
-
-        cleaned = cleanOutput(result);
-        console.log(`[Translate] First attempt: "${cleaned}"`);
-
-        // 6. Retry if output echoes English back
-        if (isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) {
-          console.log(`[Translate] Bad output detected — retrying...`);
-          result = await askAI([
-            { role: "system",    content: buildPrompt(true) },
-            { role: "user",      content: cleanQuery },
-            { role: "assistant", content: cleaned },
-            { role: "user",      content: `That was English. Give me ONLY the Bhutia Roman transliteration.` },
+        // 5. No RAG context — don't hallucinate, return honest not-found
+        if (!systemPrompt) {
+          console.log(`[Translate] No dictionary context found — returning not-found`);
+          cleaned = "__NOT_FOUND__";
+        } else {
+          // 5b. First LLM attempt
+          let result = await askAI([
+            { role: "system", content: systemPrompt },
+            { role: "user",   content: cleanQuery },
           ], 0.0);
-          cleaned = cleanOutput(result);
-        }
 
-        // 7. Final extraction from RAG context if AI still fails
-        if ((isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) && ragContext) {
-          const lines = ragContext.split("\n");
-          for (const line of lines) {
-            // match: Dictionary entry: "X" translates to Bhutia word "Y"
-            const dMatch = line.match(/translates to Bhutia word "([^"]+)"/i);
-            if (dMatch && dMatch[1]) {
-              cleaned = dMatch[1].trim();
-              break;
-            }
-            // fallback for older format with transliteration label
-            const tMatch = line.match(/[Tt]ransliteration[:\s]+([A-Za-z\s'\-]+)/);
-            if (tMatch && tMatch[1]) {
-              cleaned = tMatch[1].trim();
-              break;
+          cleaned = cleanOutput(result);
+          console.log(`[Translate] First attempt: "${cleaned}"`);
+
+          // 6. Retry if output echoes English back
+          if (isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) {
+            console.log(`[Translate] Bad output detected — retrying...`);
+            result = await askAI([
+              { role: "system",    content: buildPrompt(true) },
+              { role: "user",      content: cleanQuery },
+              { role: "assistant", content: cleaned },
+              { role: "user",      content: `That was English. Give me ONLY the Bhutia Roman transliteration.` },
+            ], 0.0);
+            cleaned = cleanOutput(result);
+          }
+
+          // 7. Final extraction from RAG context if AI still fails
+          if ((isEcho(cleaned, cleanQuery) || hasEnglish(cleaned)) && ragContext) {
+            const lines = ragContext.split("\n");
+            for (const line of lines) {
+              // match: Dictionary entry: "X" translates to Bhutia word "Y"
+              const dMatch = line.match(/translates to Bhutia word "([^"]+)"/i);
+              if (dMatch && dMatch[1]) {
+                cleaned = dMatch[1].trim();
+                break;
+              }
+              // fallback for older format with translitoeration label
+              const tMatch = line.match(/[Tt]ransliteration[:\s]+([A-Za-z\s'\-]+)/);
+              if (tMatch && tMatch[1]) {
+                cleaned = tMatch[1].trim();
+                break;
+              }
             }
           }
         }

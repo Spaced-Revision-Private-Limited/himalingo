@@ -38,21 +38,7 @@ function Sidebar({
               </svg>
             </button>
             {isOpen && <span className="brand">Himalingo</span>}
-            {isOpen && (
-              <button className="icon-btn" onClick={onNewChat} title="New chat">
-                {/* <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 5v14M5 12h14"/>
-                </svg> */}
-              </button>
-            )}
           </div>
-          {!isOpen && (
-            <button className="icon-btn centered" onClick={onNewChat} title="New chat">
-              {/* <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14"/>
-              </svg> */}
-            </button>
-          )}
           {!loggedIn && isOpen && (
             <button className="login-btn-top" onClick={() => setLoginOpen(true)}>
               <span>👤</span>
@@ -64,7 +50,17 @@ function Sidebar({
         {/* HISTORY — keep exactly as before */}
         <div className={`sidebar-history ${!loggedIn ? 'hidden-element' : ''}`}>
           <div className="history-header">
-            {isOpen && <p className="history-label">Recent History</p>}
+            {isOpen && (
+              <div className="history-title-group">
+                <p className="history-label">Recent History</p>
+                <button className="new-chat-header-btn" onClick={onNewChat} title="New chat">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                </button>
+              </div>
+            )}
             {isOpen && history && history.length > 0 && (
               <button className="clear-btn" onClick={onClearHistory}>Clear All</button>
             )}
@@ -179,6 +175,30 @@ function Sidebar({
         .icon-btn.centered {
           width: 100%;
           margin-top: 6px;
+        }
+        .history-title-group {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .new-chat-header-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border: 1px solid rgba(0,0,0,0.06);
+          border-radius: 999px;
+          background: linear-gradient(135deg, #ffffff, #f3f4f6);
+          color: #374151;
+          cursor: pointer;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+          transition: all 0.2s;
+        }
+        .new-chat-header-btn:hover {
+          background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+          color: #111827;
+          transform: translateY(-1px);
         }
 
         .brand {

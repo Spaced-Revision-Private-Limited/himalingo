@@ -105,8 +105,10 @@ export async function getRagContext(query, language) {
 
     console.log(`[RAG] Searching "${cleanedQuery}" in ${formattedLang}...`);
 
+    console.log(`${cleanedQuery} cleaned query`)
+
     // Phrase search
-    const matches = await searchPinecone(cleanedQuery, formattedLang, TOP_K);
+    const matches = await searchPinecone(cleanedQuery, formattedLang, TOP_K); // K-neighbours algo for searching
 
     console.log(`[Pinecone] Found ${matches.length} matches`);
 
@@ -124,7 +126,7 @@ export async function getRagContext(query, language) {
 
     // CRITICAL FIX: Wrong filter -> keep score >= CONFIDENCE_THRESHOLD
     const threshold = CONFIDENCE_THRESHOLD;
-    const goodMatches = matches.filter(m => (m.score ?? 0) >= threshold);
+    const goodMatches = matches.filter(m => (m.score ?? 0) <= 1 - threshold);
 
     console.log(
       `[RAG] Confidence: ${goodMatches.length}/${matches.length} above ${threshold}`
