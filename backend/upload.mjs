@@ -322,6 +322,7 @@ function buildRecordsForFile(fileName, data) {
       });
       break;
     }
+  }
 
     default: {
       if (Array.isArray(data)) {
