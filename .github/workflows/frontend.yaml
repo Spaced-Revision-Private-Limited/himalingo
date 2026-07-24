@@ -32,9 +32,6 @@ jobs:
         id: image
         run: echo "image=${REGISTRY}/${IMAGE_NAME,,}-frontend" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -43,10 +40,6 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: ${{ steps.image.outputs.image }}:latest
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy-frontend:
     needs: build-and-push-frontend
