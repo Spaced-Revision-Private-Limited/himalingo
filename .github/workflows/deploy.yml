@@ -88,7 +88,7 @@ jobs:
               -e PORT='${{ secrets.PORT }}' \
               -e MONGODB_URI='${{ secrets.MONGODB_URI }}' \
               -e PEPPER_SECRET='${{ secrets.PEPPER_SECRET }}' \
-              -e GPT5_NANO_API_KEY='${{ secrets.GPT5_NANO_API_KEY }}' \
+              -e GEMENI_API_KEY='${{ secrets.GEMENI_API_KEY }}' \
               -e PINECONE_API_KEY='${{ secrets.PINECONE_API_KEY }}' \
               -e CONFIDENCE_THRESHOLD='${{ secrets.CONFIDENCE_THRESHOLD }}' \
               -e JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}' \

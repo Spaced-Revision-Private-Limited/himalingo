@@ -1,19 +1,14 @@
-// services/aiService.js — calls OpenAI for translation and chat
-// Uses GPT5_NANO_API_KEY directly (no OpenRouter)
-// Fixed: removed optional chaining (?.) for older Node.js compatibility
-
 import fetch from "node-fetch";
 
 const MODELS = [
-  "gpt-4o-mini",     // fast, cheap — sufficient when RAG context is provided
-  "gpt-4o",          // stronger fallback for difficult inputs
-  "gpt-3.5-turbo",   // last resort
+  "gemini-3.1-flash-lite",  // fast, cheap, current free-tier model
+  "gemini-flash-latest",    // alias that always points to the latest stable Flash model
 ];
 
 export async function askAI(messages, temperature = 0.05) {
-  const apiKey = process.env.GPT5_NANO_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.error("[AI] GPT5_NANO_API_KEY missing from .env");
+    console.error("[AI] GEMINI_API_KEY missing from .env");
     return "__API_KEY_MISSING__";
   }
 
@@ -25,18 +20,18 @@ export async function askAI(messages, temperature = 0.05) {
 
       console.log(`[AI] Trying ${modelId}...`);
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
         method: "POST",
         headers: {
-          Authorization:  `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model:       modelId,
+          model: modelId,
           messages,
           temperature: temperature,
-          top_p:       1,
+          top_p: 1,
         }),
       });
 
@@ -46,7 +41,7 @@ export async function askAI(messages, temperature = 0.05) {
         const errText = await response.text();
         console.error(`[AI] ${modelId} HTTP ${response.status}:`, errText);
         const waitTime = response.status === 429 ? 2000 : 500;
-        await new Promise(function(r) { return setTimeout(r, waitTime); });
+        await new Promise(function (r) { return setTimeout(r, waitTime); });
         continue;
       }
 
@@ -65,7 +60,7 @@ export async function askAI(messages, temperature = 0.05) {
 
       if (data.error) {
         console.error(`[AI] ${modelId} error:`, data.error && data.error.message);
-        await new Promise(function(r) { return setTimeout(r, 500); });
+        await new Promise(function (r) { return setTimeout(r, 500); });
       }
 
     } catch (e) {
@@ -75,7 +70,7 @@ export async function askAI(messages, temperature = 0.05) {
       } else {
         console.error(`[AI] ${modelId} failed:`, e.message);
       }
-      await new Promise(function(r) { return setTimeout(r, 500); });
+      await new Promise(function (r) { return setTimeout(r, 500); });
     }
   }
 

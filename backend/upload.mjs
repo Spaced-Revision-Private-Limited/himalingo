@@ -1,10 +1,19 @@
 // upload.mjs — Bhutia ONLY uploader
-// Run with: node upload.mjs
+// Run with: NODE_ENV=dev node upload.mjs   (or NODE_ENV=prod for production env)
 
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({
+  path: process.env.NODE_ENV === "dev" ? ".env.local" : ".env.prod",
+});
+
 import fs   from "fs";
 import path from "path";
 import { Pinecone } from "@pinecone-database/pinecone";
+
+if (!process.env.PINECONE_API_KEY) {
+  console.error("PINECONE_API_KEY missing — check your .env.local / .env.prod file and NODE_ENV setting.");
+  process.exit(1);
+}
 
 const pc    = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 const index = pc.Index("translation");
@@ -98,11 +107,12 @@ function buildRecordsForFile(fileName, data) {
   };
 
   switch (fileName) {
+    // FIX: entries use "transliteration", not "transliteration_bhutia"/"bhutia"
     case "dictionary.json": {
       const entries = Array.isArray(data) ? data : [];
       entries.forEach(entry => {
-        if (entry?.english && (entry.transliteration_bhutia || entry.bhutia)) {
-          pushPair(entry.english, entry.transliteration_bhutia || entry.bhutia, "dictionary");
+        if (entry?.english && entry?.transliteration) {
+          pushPair(entry.english, entry.transliteration, "dictionary");
         }
       });
       break;
@@ -118,11 +128,12 @@ function buildRecordsForFile(fileName, data) {
       break;
     }
 
+    // FIX: same wrong-field bug as dictionary.json — uses "transliteration"
     case "numbers_31_40.json": {
       const entries = Array.isArray(data) ? data : (data?.numbers || []);
       entries.forEach(entry => {
-        if (entry?.english && (entry.transliteration_bhutia || entry.bhutia)) {
-          pushPair(entry.english, entry.transliteration_bhutia || entry.bhutia, "numbers");
+        if (entry?.english && entry?.transliteration) {
+          pushPair(entry.english, entry.transliteration, "numbers");
         }
       });
       break;
@@ -142,11 +153,13 @@ function buildRecordsForFile(fileName, data) {
       break;
     }
 
+    // FIX: some entries use capital "Bhutia" instead of "bhutia" — check both
     case "bhutia_dictionary.json": {
       const entries = Array.isArray(data) ? data : [];
       entries.forEach(entry => {
-        if (entry?.english && entry?.bhutia) {
-          pushPair(entry.english, entry.bhutia, "bhutia_dictionary");
+        const bhu = entry?.bhutia || entry?.Bhutia;
+        if (entry?.english && bhu) {
+          pushPair(entry.english, bhu, "bhutia_dictionary");
         }
       });
       break;
@@ -314,8 +327,9 @@ function buildRecordsForFile(fileName, data) {
       if (Array.isArray(data)) {
         data.forEach(entry => {
           if (entry && typeof entry === "object") {
-            if (entry.english && (entry.transliteration || entry.bhutia || entry.transliteration_bhutia)) {
-              pushPair(entry.english, entry.transliteration || entry.bhutia || entry.transliteration_bhutia, fileName);
+            const bhu = entry.transliteration || entry.bhutia || entry.Bhutia || entry.transliteration_bhutia;
+            if (entry.english && bhu) {
+              pushPair(entry.english, bhu, fileName);
             }
           }
         });
@@ -379,4 +393,3 @@ syncData().catch(err => {
   console.error("Upload failed:", err.message);
   process.exit(1);
 });
-
